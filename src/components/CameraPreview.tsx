@@ -651,7 +651,7 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
               </p>
               {retryCount > 0 && (
                 <p className="text-xs text-yellow-400 mt-1">
-                  {isPWA ? 'PWA camera initialization in progress...' : 'Attempting to resolve initialization issue...'}
+                  {isPWA ? 'PWA camera initialization in progress...' : 'Try reloading the page to initialize camera'}
                 </p>
               )}
             </div>
