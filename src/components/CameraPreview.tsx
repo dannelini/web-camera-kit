@@ -61,7 +61,7 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
   const cameraPreviewHeightStyle = useMemo(() => {
     // Special case: Desktop browser with mobile screen width (narrow window)
     if (!isMobileUserAgent && isMobileScreen) {
-      return { height: isPWA ? '90vh' : '88vh' };
+      return { height: isPWA ? '88vh' : '88vh' };
     }
     
     // Mobile devices (actual mobile user agent or mobile screen width)
