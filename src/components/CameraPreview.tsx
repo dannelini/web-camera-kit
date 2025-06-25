@@ -855,7 +855,7 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
         {isMobile && (
           <button
             onClick={handleSwitchCameraClick}
-            className="bg-zinc-800/80 text-gray-100 p-4 rounded-full hover:bg-zinc-700 transition-all duration-200 backdrop-blur-xl border border-zinc-700 shadow-lg"
+            className="bg-zinc-800/80 text-gray-100 p-4 rounded-full hover:bg-zinc-700 transition-all duration-200 backdrop-blur-xl border border-zinc-700 shadow-lg relative z-20"
             disabled={isCapturing || isRecording}
           >
             <SwitchCamera ref={switchCameraIconRef} className="h-6 w-6" />
