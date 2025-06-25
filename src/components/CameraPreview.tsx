@@ -69,18 +69,26 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
       // Desktop: Use much more height for narrow windows
       const windowWidth = window.innerWidth;
       const windowHeight = window.innerHeight;
+      const aspectRatio = windowWidth / windowHeight;
       
-      if (windowWidth <= 800) {
-        // Very narrow desktop window - use almost full height
-        return '92vh';
+      // Check for mobile-like aspect ratios on desktop
+      if (aspectRatio < 1.0) {
+        // Portrait orientation (taller than wide) - use almost full height
+        return '94vh';
+      } else if (aspectRatio < 1.3) {
+        // Very narrow/tall aspect ratio - use most of the height
+        return '90vh';
+      } else if (windowWidth <= 800) {
+        // Very narrow desktop window by width - use almost full height
+        return '88vh';
       } else if (windowWidth <= 1000) {
         // Narrow desktop window - use most of the height
-        return '88vh';
+        return '84vh';
       } else if (windowWidth <= 1300) {
         // Medium desktop window
-        return '82vh';
+        return '80vh';
       }
-      return '78vh'; // Wide desktop
+      return '75vh'; // Wide desktop
     };
 
     const updateCameraHeight = () => {
