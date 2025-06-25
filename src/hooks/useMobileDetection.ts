@@ -21,51 +21,43 @@ export const useMobileDetection = () => {
       setViewportHeight(`${window.innerHeight}px`);
     };
 
-    const checkMobile = () => {
+    const checkAndSetMobile = () => {
       const userAgent = navigator.userAgent.toLowerCase();
       const mobileKeywords = ['android', 'iphone', 'ipad', 'ipod', 'blackberry', 'windows phone'];
       const isMobileUserAgent = mobileKeywords.some(keyword => userAgent.includes(keyword));
       const isMobileScreen = window.innerWidth <= 768;
+      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
       
-      setIsMobile(isMobileUserAgent || isMobileScreen);
+      // Prioritize user agent detection over screen size
+      // Only consider screen size for touch devices without clear mobile user agent
+      if (isMobileUserAgent) {
+        // Definitely mobile based on user agent
+        setIsMobile(true);
+      } else if (isTouchDevice && isMobileScreen) {
+        // Touch device with small screen (probably tablet in portrait)
+        setIsMobile(true);
+      } else {
+        // Desktop device (even if window is small)
+        setIsMobile(false);
+      }
       
       // Update viewport height when mobile state changes
-      if (isMobileUserAgent || isMobileScreen) {
+      if (isMobileUserAgent || (isTouchDevice && isMobileScreen)) {
         updateViewportHeight();
+        checkPWAMode();
       }
     };
 
-    
-    // Check for touch capability as additional indicator
-    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-    checkMobile();
-    // Prioritize user agent detection over screen size
-    // Only consider screen size for touch devices without clear mobile user agent
-    const isMobileScreen = window.innerWidth <= 768;
-    
-    if (isMobileUserAgent) {
-      // Definitely mobile based on user agent
-      setIsMobile(true);
-    } else if (isTouchDevice && isMobileScreen) {
-      // Touch device with small screen (probably tablet in portrait)
-      setIsMobile(true);
-    } else {
-      // Desktop device (even if window is small)
-      setIsMobile(false);
-    }
-    // Add both resize listeners
     const handleResize = () => {
-    }
-    if (isMobileUserAgent || (isTouchDevice && isMobileScreen)) {
-      updateViewportHeight();
-      checkPWAMode();
+      checkAndSetMobile();
     };
+    
+    // Initial checks
+    checkAndSetMobile();
+    updateViewportHeight();
     
     window.addEventListener('resize', handleResize);
     window.addEventListener('orientationchange', updateViewportHeight);
-    
-    // Initial viewport height calculation
-    updateViewportHeight();
     
     return () => {
       window.removeEventListener('resize', handleResize);
