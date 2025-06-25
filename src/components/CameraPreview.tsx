@@ -123,6 +123,7 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
         ...baseConstraints,
         width: { ideal: 1920, max: 2560 },
         height: { ideal: 1080, max: 1440 },
+        aspectRatio: 16/9,
         deviceId: selectedDeviceId ? { exact: selectedDeviceId } : undefined
       };
     }
@@ -582,7 +583,10 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
           onUserMedia={handleUserMedia}
           onUserMediaError={handleUserMediaError}
           key={`webcam-${facing}-${selectedDeviceId}-${retryCount}`}
-          className={`w-full h-full ${isMobile ? 'object-cover' : 'object-cover'}`}
+          className="w-full h-full object-cover"
+          style={{
+            aspectRatio: '16/9'
+          }}
           mirrored={isMobile ? facing === 'user' : true}
         />
 
