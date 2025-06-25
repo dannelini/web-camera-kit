@@ -403,7 +403,7 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
     setError(null);
     setMediaStream(stream);
     setRetryCount(0);
-  }, [isMobile, videoConstraints]);
+  }, [isMobile, videoConstraints, facing]);
 
   const handleUserMediaError = useCallback((error: string | DOMException) => {
     console.error('Camera error:', error);
@@ -437,7 +437,7 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
         : 'Unable to access camera. Please check permissions and try refreshing the page.'
       );
     }
-  }, [retryCount, isPWA]);
+  }, [retryCount, isPWA, facing, isMobile, videoConstraints]);
 
   // Add visibility change and pagehide listeners for PWA camera safety
   useEffect(() => {
@@ -690,7 +690,6 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
                 value={selectedDeviceId}
                 onChange={(e) => setSelectedDeviceId(e.target.value)}
                 disabled={isCapturing || isRecording}
-                className="appearance-none bg-zinc-900/90 text-gray-100 px-3 py-1.5 pr-8 rounded-xl text-xs backdrop-blur-2xl border border-zinc-700 hover:border-zinc-600 hover:bg-zinc-900 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed min-w-[140px] font-medium shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 className="appearance-none bg-zinc-900/90 text-gray-100 px-3 py-1.5 pr-8 rounded-xl text-xs backdrop-blur-2xl border border-zinc-700 hover:border-zinc-600 hover:bg-zinc-900 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed min-w-[140px] font-medium shadow-lg focus:outline-none focus:ring-2 focus:ring-[#FF4D00] focus:border-[#FF4D00]"
                 style={{
                   background: 'rgba(24, 24, 27, 0.9)',
