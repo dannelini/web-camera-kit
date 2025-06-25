@@ -54,37 +54,8 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
   const [retryCount, setRetryCount] = useState(0);
   const [isInitializing, setIsInitializing] = useState(false);
   const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
-  // Detect desktop portrait orientation
-  const [isDesktopPortrait, setIsDesktopPortrait] = useState(false);
 
   const { isMobile } = useMobileDetection();
-
-  // Monitor orientation changes for desktop
-  useEffect(() => {
-    const checkDesktopOrientation = () => {
-      if (!isMobile) {
-        const isPortrait = window.innerHeight > window.innerWidth;
-        setIsDesktopPortrait(isPortrait);
-      } else {
-        setIsDesktopPortrait(false);
-      }
-    };
-
-    checkDesktopOrientation();
-    
-    const handleResize = () => {
-      checkDesktopOrientation();
-    };
-    
-    window.addEventListener('resize', handleResize);
-    window.addEventListener('orientationchange', handleResize);
-    
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('orientationchange', handleResize);
-    };
-  }, [isMobile]);
 
   // Calculate camera height based on device type and PWA status
   const getCameraHeight = () => {
@@ -224,40 +195,23 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
         if (video.readyState >= 2) {
           ctx.save();
           
-          if (isMobile) {
-            const isPortraitVideo = videoHeight > videoWidth;
-            const isLandscapeOrientation = window.innerWidth > window.innerHeight;
-            
-            if (isPortraitVideo && isLandscapeOrientation) {
-              // Rotate for mobile landscape
-              ctx.translate(canvas.width / 2, canvas.height / 2);
-              ctx.rotate(Math.PI / 2);
-              ctx.drawImage(video, -videoWidth / 2, -videoHeight / 2, videoWidth, videoHeight);
-            } else {
-              // Mirror for front camera on mobile
-              if (facing === 'user') {
-                ctx.scale(-1, 1);
-                ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
-              } else {
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-              }
-            }
-          } else {
-            // Desktop: always mirror
+          // Handle mirroring based on device type and camera facing
+          if (isMobile && facing === 'user') {
+            // Mobile front camera: mirror for natural selfie view
             ctx.scale(-1, 1);
             ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+          } else if (!isMobile) {
+            // Desktop: always mirror for natural view (like a mirror)
+            ctx.scale(-1, 1);
+            ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+          } else {
+            // Mobile back camera: no mirroring (natural view)
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
           }
           
-          // Desktop: mirror based on orientation and camera
-          if (isDesktopPortrait) {
-            // Desktop portrait: always mirror for natural selfie view
-            ctx.scale(-1, 1);
-            ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
-          } else {
-            // Desktop landscape: always mirror
-            ctx.scale(-1, 1);
-            ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
-          }
+          ctx.restore();
+        }
+        
         animationFrameRef.current = requestAnimationFrame(processFrame);
       };
 
@@ -266,8 +220,8 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
     };
 
     canvasRef.current = canvas;
-    };
-  }, [isMobile, facing, isDesktopPortrait]);
+    return canvas.captureStream(30); // 30 FPS processed stream
+  }, [isMobile, facing]);
 
   // Initialize processed stream when mediaStream changes
   useEffect(() => {
@@ -667,7 +621,6 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
                 value={selectedDeviceId}
                 onChange={(e) => setSelectedDeviceId(e.target.value)}
                 disabled={isCapturing || isRecording}
-                className="appearance-none bg-zinc-900/90 text-gray-100 px-3 py-1.5 pr-8 rounded-xl text-xs backdrop-blur-2xl border border-zinc-700 hover:border-zinc-600 hover:bg-zinc-900 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed min-w-[140px] font-medium shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 className="appearance-none bg-zinc-900/90 text-gray-100 px-3 py-1.5 pr-8 rounded-xl text-xs backdrop-blur-2xl border border-zinc-700 hover:border-zinc-600 hover:bg-zinc-900 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed min-w-[140px] font-medium shadow-lg focus:outline-none focus:ring-2 focus:ring-[#FF4D00] focus:border-[#FF4D00]"
                 style={{
                   background: 'rgba(24, 24, 27, 0.9)',
