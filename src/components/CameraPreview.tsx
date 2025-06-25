@@ -55,7 +55,6 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
   const [isInitializing, setIsInitializing] = useState(false);
   const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const { isMobile } = useMobileDetection();
   const { isMobile, isMobileUserAgent, isMobileScreen } = useMobileDetection();
 
   // Calculate camera height based on device type and PWA status
