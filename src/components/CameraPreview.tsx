@@ -57,6 +57,9 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
 
   const { isMobile, isMobileUserAgent, isMobileScreen } = useMobileDetection();
 
+  // Check if desktop has constrained vertical space
+  const isDesktopConstrained = !isMobile && window.innerHeight < 800;
+
   // Calculate camera height based on device type and PWA status
   const getCameraHeight = () => {
     // Special case: Desktop browser with mobile screen width (narrow window)
@@ -762,7 +765,9 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
       </div>
 
       {/* Controls Section - Below camera feed */}
-      <div className="flex items-center justify-center px-6 pt-4 pb-4">
+      <div className={`flex items-center justify-center px-6 pt-4 ${
+        !isMobile && window.innerHeight < 800 ? 'pb-2' : 'pb-4'
+      }`}>
         {/* Gallery Button for Mobile - Left */}
         {isMobile && (
           <button
