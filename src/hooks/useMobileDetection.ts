@@ -55,6 +55,7 @@ export const useMobileDetection = () => {
     }
     // Add both resize listeners
     const handleResize = () => {
+    }
     if (isMobileUserAgent || (isTouchDevice && isMobileScreen)) {
       updateViewportHeight();
       checkPWAMode();
