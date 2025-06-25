@@ -1,4 +1,4 @@
-import React, { useRef, useCallback, useState, useEffect } from 'react';
+import React, { useRef, useCallback, useState, useEffect, useMemo } from 'react';
 import Webcam from 'react-webcam';
 import { gsap } from 'gsap';
 import { Camera, Video, SwitchCamera, Download, X, Play, Pause, Image, ArrowLeft, Settings } from 'lucide-react';
@@ -56,6 +56,22 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
   const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const { isMobile, isMobileUserAgent, isMobileScreen } = useMobileDetection();
+
+  // Calculate camera height based on device type and PWA status
+  const cameraPreviewHeightStyle = useMemo(() => {
+    // Special case: Desktop browser with mobile screen width (narrow window)
+    if (!isMobileUserAgent && isMobileScreen) {
+      return { height: isPWA ? '90vh' : '88vh' };
+    }
+    
+    // Mobile devices (actual mobile user agent or mobile screen width)
+    if (isMobile) {
+      return { height: isPWA ? '82vh' : '76vh' };
+    }
+    
+    // Desktop with wide window - use flexbox
+    return {};
+  }, [isMobileUserAgent, isMobileScreen, isMobile, isPWA]);
 
   // Enumerate video devices for desktop
   useEffect(() => {
@@ -556,7 +572,7 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
       {/* Camera Preview */}
       <div className={`relative w-full bg-black overflow-hidden shadow-2xl ${
         isMobile ? 'mx-auto' : 'rounded-2xl border border-zinc-700 flex-grow flex-shrink-0'
-      }`} style={isMobile ? { height: isPWA ? '82vh' : '76vh' } : {}}>
+      }`} style={cameraPreviewHeightStyle}>
         {/* Camera Component */}
         <Webcam
           ref={webcamRef}
