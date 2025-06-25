@@ -56,8 +56,6 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
   const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [showCameraTransitionOverlay, setShowCameraTransitionOverlay] = useState(false);
   const transitionOverlayRef = useRef<HTMLDivElement>(null);
-  const [showInitialLoadingOverlay, setShowInitialLoadingOverlay] = useState(true);
-  const initialLoadingOverlayRef = useRef<HTMLDivElement>(null);
 
   const { isMobile, isMobileUserAgent, isMobileScreen } = useMobileDetection();
 
@@ -319,7 +317,6 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
     setMediaStream(null);
     setIsRecording(false);
     setRetryCount(0);
-    setShowInitialLoadingOverlay(true);
     
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
@@ -398,25 +395,6 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
     setMediaStream(stream);
     setRetryCount(0);
     
-    // Hide initial loading overlay with fade animation
-    if (showInitialLoadingOverlay) {
-      console.log('Camera loaded for first time, will hide initial overlay after 0.5 seconds...');
-      setTimeout(() => {
-        if (initialLoadingOverlayRef.current) {
-          console.log('Fading out initial loading overlay...');
-          gsap.to(initialLoadingOverlayRef.current, {
-            opacity: 0,
-            duration: 0.5,
-            ease: "power2.out",
-            onComplete: () => {
-              console.log('Initial loading overlay hidden');
-              setShowInitialLoadingOverlay(false);
-            }
-          });
-        }
-      }, 500);
-    }
-    
     // Hide camera transition overlay with delay and fade out animation on mobile
     if (isMobile && showCameraTransitionOverlay) {
       console.log('Camera loaded, will hide overlay after 1 second...');
@@ -436,7 +414,7 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
         }
       }, 500);
     }
-  }, [isMobile, showCameraTransitionOverlay, showInitialLoadingOverlay, videoConstraints]);
+  }, [isMobile, showCameraTransitionOverlay, videoConstraints]);
 
   const handleUserMediaError = useCallback((error: string | DOMException) => {
     console.error('Camera error:', error);
@@ -651,25 +629,6 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
           mirrored={isMobile ? facing === 'user' : true}
         />
 
-        {/* Initial Loading Overlay */}
-        {showInitialLoadingOverlay && (
-          <div
-            ref={initialLoadingOverlayRef}
-            className="absolute inset-0 z-20 bg-zinc-900 flex items-center justify-center p-6"
-          >
-            <div className="text-gray-100 text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-100 mx-auto mb-4"></div>
-              <p className="font-medium">
-                Initializing camera...
-              </p>
-              <p className="text-xs text-zinc-400 mt-2 max-w-xs">
-                Device: {isMobile ? 'Mobile' : 'Desktop'} {isPWA ? '(PWA)' : ''} | 
-                Resolution: {videoConstraints.width.ideal}×{videoConstraints.height.ideal}
-              </p>
-            </div>
-          </div>
-        )}
-
         {/* Camera Transition Overlay - Mobile Only */}
         {isMobile && showCameraTransitionOverlay && (
           <div
@@ -680,7 +639,7 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
 
         {/* Loading State */}
         {((!isReady && !error) || isInitializing) && (
-          <div className="absolute inset-0 bg-zinc-900 flex items-center justify-center p-6" style={{ display: showInitialLoadingOverlay ? 'none' : 'flex' }}>
+          <div className="absolute inset-0 bg-zinc-900 flex items-center justify-center p-6">
             <div className="text-gray-100 text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-100 mx-auto mb-4"></div>
               <p className="font-medium">
