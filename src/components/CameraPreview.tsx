@@ -5,6 +5,9 @@ import { Camera, Video, SwitchCamera, Download, X, Play, Pause, Image, ArrowLeft
 import { useMobileDetection } from '../hooks/useMobileDetection';
 import { CameraMode, CameraFacing, CapturedMedia } from '../types/media';
 
+// Define camera status type for clearer state management
+type CameraStatus = 'idle' | 'initializing' | 'ready' | 'error';
+
 interface CameraPreviewProps {
   mode: CameraMode;
   facing: CameraFacing;
@@ -46,13 +49,13 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
   const modeSelectorRef = useRef<HTMLDivElement>(null);
   const switchCameraIconRef = useRef<SVGSVGElement>(null);
   
-  const [isReady, setIsReady] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Simplified state management using status-based approach
+  const [cameraStatus, setCameraStatus] = useState<CameraStatus>('idle');
+  const [cameraError, setCameraError] = useState<string | null>(null);
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
   const [retryCount, setRetryCount] = useState(0);
-  const [isInitializing, setIsInitializing] = useState(false);
   const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const { isMobile, isMobileUserAgent, isMobileScreen } = useMobileDetection();
@@ -73,11 +76,47 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
     return {};
   }, [isMobileUserAgent, isMobileScreen, isMobile, isPWA]);
 
+  // Centralized stream stopping logic
+  const stopCurrentCameraStream = useCallback(() => {
+    console.log('🔄 Stopping current camera streams...');
+    
+    if (mediaStream) {
+      console.log('📹 Stopping media stream tracks:', mediaStream.getTracks().length);
+      mediaStream.getTracks().forEach(track => {
+        console.log(`  - Stopping track: ${track.kind} (${track.label})`);
+        track.stop();
+      });
+    }
+    
+    if (processedStreamRef.current) {
+      console.log('🎨 Stopping processed stream tracks');
+      processedStreamRef.current.getTracks().forEach(track => track.stop());
+      processedStreamRef.current = null;
+    }
+    
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      console.log('🎬 Stopping active recording');
+      mediaRecorderRef.current.stop();
+    }
+    mediaRecorderRef.current = null;
+    
+    if (animationFrameRef.current) {
+      console.log('🎞️ Canceling animation frame');
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    
+    setMediaStream(null);
+    setIsRecording(false);
+  }, [mediaStream]);
+
   // Enumerate video devices for desktop
   useEffect(() => {
     if (!isMobile) {
       const getVideoDevices = async () => {
         try {
+          console.log('🔍 Enumerating video devices for desktop...');
+          
           // Request permissions first to ensure device enumeration works
           await navigator.mediaDevices.getUserMedia({ video: true, audio: false })
             .then(stream => {
@@ -89,14 +128,21 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
 
           const devices = await navigator.mediaDevices.enumerateDevices();
           const videoInputs = devices.filter(device => device.kind === 'videoinput');
+          
+          console.log('📹 Found video devices:', videoInputs.length);
+          videoInputs.forEach((device, index) => {
+            console.log(`  ${index + 1}. ${device.label || 'Unknown Camera'} (${device.deviceId})`);
+          });
+          
           setVideoDevices(videoInputs);
           
           // Set default device if none selected
           if (!selectedDeviceId && videoInputs.length > 0) {
+            console.log('📝 Setting default device:', videoInputs[0].label);
             setSelectedDeviceId(videoInputs[0].deviceId);
           }
         } catch (error) {
-          console.error('Error enumerating devices:', error);
+          console.error('❌ Error enumerating devices:', error);
         }
       };
 
@@ -116,7 +162,7 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
         width: { ideal: 1280, max: 1920 },
         height: { ideal: 720, max: 1080 },
         facingMode: facing,
-        // Remove aspectRatio for mobile to avoid conflicts with camera switching
+        aspectRatio: 16/9 // Re-added for mobile
       };
     } else {
       return {
@@ -155,6 +201,7 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
     
     return shortened;
   }, []);
+
   const videoConstraints = getVideoConstraints();
 
   // Create canvas for real-time video processing
@@ -245,6 +292,7 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
   // Initialize processed stream when mediaStream changes
   useEffect(() => {
     if (mediaStream && mode === 'video') {
+      console.log('🎨 Creating processing canvas for video mode...');
       const processedStream = createProcessingCanvas(mediaStream);
       if (processedStream) {
         processedStreamRef.current = processedStream;
@@ -280,15 +328,18 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
 
           mediaRecorder.onerror = (event) => {
             console.error('MediaRecorder error:', event);
-            setError('Recording failed. Please try again.');
+            setCameraError('Recording failed. Please try again.');
+            setCameraStatus('error');
             setIsRecording(false);
             setIsCapturing(false);
           };
 
           mediaRecorderRef.current = mediaRecorder;
+          console.log('🎬 MediaRecorder created successfully');
         } catch (error) {
           console.error('Failed to create MediaRecorder:', error);
-          setError('Recording not supported on this device.');
+          setCameraError('Recording not supported on this device.');
+          setCameraStatus('error');
         }
       }
     }
@@ -307,209 +358,119 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
     };
   }, [mediaStream, mode, isMobile, createProcessingCanvas, createMediaFromBlob, onCapture, setIsCapturing]);
 
-  // Reset state when facing or mobile detection changes
+  // Camera initialization effect - refined for better state management
   useEffect(() => {
-    setIsInitializing(true);
-    setIsReady(false);
-    setError(null);
-    setMediaStream(null);
-    setIsRecording(false);
-    // Don't reset retry count on facing change to maintain unique keys
-    
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-    }
-    if (processedStreamRef.current) {
-      processedStreamRef.current.getTracks().forEach(track => track.stop());
-    }
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-      mediaRecorderRef.current.stop();
-    }
-    mediaRecorderRef.current = null;
-    
-    // Add a small delay to ensure cleanup is complete
-    setTimeout(() => {
-      setIsInitializing(false);
-    }, 100);
-  }, [facing, isMobile, selectedDeviceId]);
-
-  const startRecording = useCallback(() => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'inactive') {
-      try {
-        mediaRecorderRef.current.start(1000); // Record in 1-second chunks
-        setIsRecording(true);
-        setIsCapturing(true);
-      } catch (error) {
-        console.error('Failed to start recording:', error);
-        setError('Failed to start recording.');
-      }
-    }
-  }, [setIsCapturing]);
-
-  const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-      try {
-        mediaRecorderRef.current.stop();
-      } catch (error) {
-        console.error('Failed to stop recording:', error);
-        setError('Failed to stop recording.');
-        setIsRecording(false);
-        setIsCapturing(false);
-      }
-    }
-  }, [setIsCapturing]);
-
-  const capturePhoto = useCallback(() => {
-    if (!webcamRef.current) return;
-    
-    setIsCapturing(true);
-    
-    setTimeout(() => {
-      const imageSrc = webcamRef.current?.getScreenshot();
-      if (imageSrc) {
-        fetch(imageSrc)
-          .then(res => res.blob())
-          .then(blob => {
-            const media = createMediaFromBlob(blob, 'photo');
-            onCapture(media);
-            setIsCapturing(false);
-          })
-          .catch(err => {
-            console.error('Error converting photo:', err);
-            setIsCapturing(false);
-          });
-      } else {
-        setIsCapturing(false);
-      }
-    }, 100);
-  }, [onCapture, createMediaFromBlob, setIsCapturing]);
-
-  const handleUserMedia = useCallback((stream: MediaStream) => {
-    console.log('Camera stream started successfully:', {
+    console.log('🔄 Camera initialization triggered:', {
       facing,
       isMobile,
-      tracks: stream.getVideoTracks().map(track => ({ label: track.label, settings: track.getSettings() }))
+      selectedDeviceId,
+      retryCount,
+      currentStatus: cameraStatus
+    });
+
+    // Stop any existing streams first
+    stopCurrentCameraStream();
+    
+    // Set status to initializing and clear any errors
+    setCameraStatus('initializing');
+    setCameraError(null);
+    
+    // Add a small delay to ensure cleanup is complete
+    const initDelay = setTimeout(() => {
+      console.log('✅ Camera initialization delay complete, ready for new stream');
+    }, 100);
+
+    return () => {
+      clearTimeout(initDelay);
+      if (initTimeoutRef.current) {
+        clearTimeout(initTimeoutRef.current);
+      }
+    };
+  }, [facing, isMobile, selectedDeviceId, stopCurrentCameraStream]);
+
+  const handleUserMedia = useCallback((stream: MediaStream) => {
+    console.log('✅ Camera stream started successfully:', {
+      facing,
+      isMobile,
+      selectedDeviceId,
+      retryCount,
+      tracks: stream.getVideoTracks().map(track => ({ 
+        label: track.label, 
+        settings: track.getSettings() 
+      }))
     });
     
     const videoTrack = stream.getVideoTracks()[0];
     if (videoTrack) {
       const settings = videoTrack.getSettings();
-      console.log('Video track settings:', settings);
-      console.log(`Device type: ${isMobile ? 'Mobile' : 'Desktop'}, Constraints:`, videoConstraints);
+      console.log('📹 Video track settings:', settings);
+      console.log('🎯 Applied constraints:', videoConstraints);
     }
     
-    setIsInitializing(false);
-    setIsReady(true);
-    setError(null);
+    setCameraStatus('ready');
+    setCameraError(null);
     setMediaStream(stream);
     setRetryCount(0);
-  }, [isMobile, videoConstraints, facing]);
+  }, [facing, isMobile, selectedDeviceId, retryCount, videoConstraints]);
 
   const handleUserMediaError = useCallback((error: string | DOMException) => {
-    console.error('Camera error:', error);
-    console.log('Camera error details:', {
+    console.error('❌ Camera error occurred:', {
+      error: error.toString(),
       facing,
       isMobile,
-      error: error.toString(),
+      selectedDeviceId,
       retryCount,
       videoConstraints
     });
     
-    setIsInitializing(false);
-    setIsReady(false);
+    setCameraStatus('error');
     setMediaStream(null);
     
     // Implement retry logic for common initialization issues, especially in PWA
     if (retryCount < 3) {
-      console.log(`Retrying camera initialization (attempt ${retryCount + 1}/3)`);
+      console.log(`🔄 Retrying camera initialization (attempt ${retryCount + 1}/3)`);
       setRetryCount(prev => prev + 1);
       
       // Progressive delay for retries
       const delay = isPWA ? (retryCount + 1) * 1500 : (retryCount + 1) * 1000;
       
       initTimeoutRef.current = setTimeout(() => {
-        setError(null);
-        setIsInitializing(true);
+        console.log('⏰ Retry timeout elapsed, attempting reinitialization');
+        setCameraError(null);
+        setCameraStatus('initializing');
       }, delay);
     } else {
-      setError(isPWA 
+      const errorMessage = isPWA 
         ? 'Camera initialization failed. Please close and reopen the app, or refresh the page.'
-        : 'Unable to access camera. Please check permissions and try refreshing the page.'
-      );
+        : 'Unable to access camera. Please check permissions and try refreshing the page.';
+      
+      console.log('💥 Max retries exceeded, showing error:', errorMessage);
+      setCameraError(errorMessage);
     }
-  }, [retryCount, isPWA, facing, isMobile, videoConstraints]);
+  }, [retryCount, isPWA, facing, isMobile, selectedDeviceId, videoConstraints]);
 
   // Add visibility change and pagehide listeners for PWA camera safety
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
-        console.log('PWA: App went into background, stopping camera tracks');
+        console.log('👀 PWA: App went into background, stopping camera tracks');
+        stopCurrentCameraStream();
+        setCameraStatus('idle');
+      } else if (document.visibilityState === 'visible' && cameraStatus === 'idle') {
+        console.log('👁️ PWA: App came back to foreground, re-initializing camera');
         
-        // Stop all active media tracks
-        if (mediaStream) {
-          mediaStream.getTracks().forEach(track => {
-            console.log('PWA: Stopping track:', track.kind, track.label);
-            track.stop();
-          });
-        }
-        
-        if (processedStreamRef.current) {
-          processedStreamRef.current.getTracks().forEach(track => {
-            track.stop();
-          });
-        }
-        
-        // Stop recording if active
-        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-          console.log('PWA: Stopping active recording');
-          mediaRecorderRef.current.stop();
-        }
-        
-        // Reset camera state
-        setIsReady(false);
-        setMediaStream(null);
-        setIsRecording(false);
-      } else if (document.visibilityState === 'visible' && !isReady && !error) {
-        console.log('PWA: App came back to foreground, re-initializing camera');
-        
-        // Force complete re-initialization by incrementing retry count
-        // This triggers a Webcam component remount via the key prop
         setTimeout(() => {
-          setError(null);
-          setIsInitializing(true);
+          setCameraError(null);
+          setCameraStatus('initializing');
           setRetryCount(prev => prev + 1); // This forces Webcam remount
-          
-          // The webcam component will handle setting isInitializing to false
-          // via onUserMedia or onUserMediaError callbacks
         }, 200);
       }
     };
 
     const handlePageHide = () => {
-      console.log('PWA: Page hide event, stopping all camera resources');
-      
-      // Stop all active media tracks
-      if (mediaStream) {
-        mediaStream.getTracks().forEach(track => {
-          track.stop();
-        });
-      }
-      
-      if (processedStreamRef.current) {
-        processedStreamRef.current.getTracks().forEach(track => {
-          track.stop();
-        });
-      }
-      
-      // Stop recording if active
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-        mediaRecorderRef.current.stop();
-      }
-      
-      // Cancel any pending animation frames
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
+      console.log('📱 PWA: Page hide event, stopping all camera resources');
+      stopCurrentCameraStream();
+      setCameraStatus('idle');
     };
 
     // Add event listeners
@@ -518,10 +479,8 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
     
     // Also listen for beforeunload as additional safety
     const handleBeforeUnload = () => {
-      console.log('PWA: Before unload, cleaning up camera resources');
-      if (mediaStream) {
-        mediaStream.getTracks().forEach(track => track.stop());
-      }
+      console.log('🚪 PWA: Before unload, cleaning up camera resources');
+      stopCurrentCameraStream();
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
 
@@ -531,7 +490,7 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
       window.removeEventListener('pagehide', handlePageHide);
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [mediaStream, isReady, error, isInitializing]); // Dependencies for proper re-attachment
+  }, [stopCurrentCameraStream, cameraStatus]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -542,42 +501,33 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
     };
   }, []);
 
-  // Handle camera switch with animation
+  // Handle camera switch with animation - refined logic
   const handleSwitchCameraClick = useCallback(() => {
-    if (!isReady) {
-      console.log('Camera not ready for switching');
+    if (cameraStatus !== 'ready') {
+      console.log('⚠️ Camera not ready for switching, current status:', cameraStatus);
       return;
     }
     
-    console.log('Switching camera from', facing, 'to', facing === 'user' ? 'environment' : 'user');
+    console.log('🔄 Switching camera from', facing, 'to', facing === 'user' ? 'environment' : 'user');
     
-    // Immediately stop current streams
-    if (mediaStream) {
-      console.log('Stopping current camera stream');
-      mediaStream.getTracks().forEach(track => {
-        console.log('Stopping track:', track.label);
-        track.stop();
-      });
-    }
+    // Stop current streams immediately
+    stopCurrentCameraStream();
     
-    if (processedStreamRef.current) {
-      processedStreamRef.current.getTracks().forEach(track => {
-        track.stop();
-      });
-    }
+    // Set to initializing status
+    setCameraStatus('initializing');
+    setCameraError(null);
     
-    // Reset states
-    setIsReady(false);
-    setMediaStream(null);
-    setError(null);
-    
-    // Increment retry count first to force new key, then change facing
+    // Increment retry count to force Webcam component remount
     setRetryCount(prev => {
       const newCount = prev + 1;
-      // Use setTimeout to ensure state update completes before facing change
+      console.log('🔢 New retry count for camera switch:', newCount);
+      
+      // Trigger facing change after state update
       setTimeout(() => {
+        console.log('📹 Triggering facing change...');
         onFacingChange();
       }, 50);
+      
       return newCount;
     });
     
@@ -596,14 +546,14 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
         ease: "power2.out"
       });
     }
-  }, [onFacingChange, isReady, mediaStream, facing]);
+  }, [cameraStatus, facing, onFacingChange, stopCurrentCameraStream]);
 
   // Force camera reinitialization for PWA
   const handlePWARetry = useCallback(() => {
-    setError(null);
-    setIsReady(false);
+    console.log('🔄 PWA retry triggered');
+    setCameraError(null);
     setRetryCount(0);
-    setIsInitializing(true);
+    setCameraStatus('initializing');
     
     // Clear any existing timeouts
     if (initTimeoutRef.current) {
@@ -612,9 +562,74 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
     
     // Force a complete reinitialization
     setTimeout(() => {
-      setIsInitializing(false);
+      console.log('⏰ PWA retry delay complete');
+      if (cameraStatus === 'initializing') {
+        setCameraStatus('idle');
+        setTimeout(() => setCameraStatus('initializing'), 100);
+      }
     }, 1000);
-  }, []);
+  }, [cameraStatus]);
+
+  const startRecording = useCallback(() => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'inactive') {
+      try {
+        console.log('🎬 Starting video recording');
+        mediaRecorderRef.current.start(1000); // Record in 1-second chunks
+        setIsRecording(true);
+        setIsCapturing(true);
+      } catch (error) {
+        console.error('Failed to start recording:', error);
+        setCameraError('Failed to start recording.');
+        setCameraStatus('error');
+      }
+    }
+  }, [setIsCapturing]);
+
+  const stopRecording = useCallback(() => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      try {
+        console.log('⏹️ Stopping video recording');
+        mediaRecorderRef.current.stop();
+      } catch (error) {
+        console.error('Failed to stop recording:', error);
+        setCameraError('Failed to stop recording.');
+        setCameraStatus('error');
+        setIsRecording(false);
+        setIsCapturing(false);
+      }
+    }
+  }, [setIsCapturing]);
+
+  const capturePhoto = useCallback(() => {
+    if (!webcamRef.current || cameraStatus !== 'ready') {
+      console.log('⚠️ Cannot capture photo, camera not ready:', cameraStatus);
+      return;
+    }
+    
+    console.log('📸 Capturing photo');
+    setIsCapturing(true);
+    
+    setTimeout(() => {
+      const imageSrc = webcamRef.current?.getScreenshot();
+      if (imageSrc) {
+        fetch(imageSrc)
+          .then(res => res.blob())
+          .then(blob => {
+            const media = createMediaFromBlob(blob, 'photo');
+            onCapture(media);
+            setIsCapturing(false);
+            console.log('✅ Photo captured successfully');
+          })
+          .catch(err => {
+            console.error('Error converting photo:', err);
+            setIsCapturing(false);
+          });
+      } else {
+        console.error('Failed to get screenshot');
+        setIsCapturing(false);
+      }
+    }, 100);
+  }, [onCapture, createMediaFromBlob, setIsCapturing, cameraStatus]);
 
   return (
     <div className={`relative ${isMobile ? 'space-y-1' : 'flex flex-col h-full space-y-1'}`}>
@@ -632,17 +647,16 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
           onUserMediaError={handleUserMediaError}
           key={`webcam-${facing}-${selectedDeviceId}-${retryCount}`}
           className="w-full h-full object-cover"
-          style={isMobile ? {} : { aspectRatio: '16/9' }}
           mirrored={isMobile ? facing === 'user' : true}
         />
 
         {/* Loading State */}
-        {((!isReady && !error) || isInitializing) && (
+        {cameraStatus === 'initializing' && (
           <div className="absolute inset-0 bg-zinc-900 flex items-center justify-center p-6">
             <div className="text-gray-100 text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-100 mx-auto mb-4"></div>
               <p className="font-medium">
-                {retryCount > 1 ? `Initializing camera... (${retryCount})` : 'Initializing camera...'}
+                {retryCount > 1 ? `Initializing camera... (attempt ${retryCount})` : 'Initializing camera...'}
               </p>
               <p className="text-xs text-zinc-400 mt-2 max-w-xs">
                 Device: {isMobile ? 'Mobile' : 'Desktop'} {isPWA ? '(PWA)' : ''} | 
@@ -659,14 +673,14 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
         )}
 
         {/* Camera Error State */}
-        {error && (
+        {cameraStatus === 'error' && (
           <div className="absolute inset-0 bg-zinc-900 flex items-center justify-center">
             <div className="text-gray-100 text-center px-6">
               <div className="w-16 h-16 bg-zinc-800 rounded-2xl flex items-center justify-center mx-auto mb-6">
                 <Camera className="h-8 w-8 text-zinc-400" />
               </div>
               <p className="text-lg font-semibold mb-2">Camera Error</p>
-              <p className="text-sm text-zinc-400 mb-6">{error}</p>
+              <p className="text-sm text-zinc-400 mb-6">{cameraError}</p>
               <button
                 onClick={isPWA ? handlePWARetry : () => window.location.reload()}
                 className="bg-zinc-700 text-white px-6 py-2.5 rounded-xl font-medium hover:bg-zinc-600 transition-all duration-200 shadow-lg"
@@ -689,7 +703,7 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
               <select
                 value={selectedDeviceId}
                 onChange={(e) => setSelectedDeviceId(e.target.value)}
-                disabled={isCapturing || isRecording}
+                disabled={isCapturing || isRecording || cameraStatus !== 'ready'}
                 className="appearance-none bg-zinc-900/90 text-gray-100 px-3 py-1.5 pr-8 rounded-xl text-xs backdrop-blur-2xl border border-zinc-700 hover:border-zinc-600 hover:bg-zinc-900 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed min-w-[140px] font-medium shadow-lg focus:outline-none focus:ring-2 focus:ring-[#FF4D00] focus:border-[#FF4D00]"
                 style={{
                   background: 'rgba(24, 24, 27, 0.9)',
@@ -731,23 +745,23 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
             <div className="flex space-x-1">
               <button
                 onClick={() => onModeChange('photo')}
-                disabled={isCapturing || isRecording}
+                disabled={isCapturing || isRecording || cameraStatus !== 'ready'}
                 className={`px-4 py-2 rounded-xl transition-all duration-300 text-sm font-medium ${
                   mode === 'photo'
                     ? 'bg-zinc-700 text-gray-100 shadow-lg'
                     : 'text-zinc-400 hover:text-gray-100 hover:bg-zinc-800'
-                } ${(isCapturing || isRecording) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                } ${(isCapturing || isRecording || cameraStatus !== 'ready') ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 Photo
               </button>
               <button
                 onClick={() => onModeChange('video')}
-                disabled={isCapturing || isRecording}
+                disabled={isCapturing || isRecording || cameraStatus !== 'ready'}
                 className={`px-4 py-2 rounded-xl transition-all duration-300 text-sm font-medium ${
                   mode === 'video'
                     ? 'bg-zinc-700 text-gray-100 shadow-lg'
                     : 'text-zinc-400 hover:text-gray-100 hover:bg-zinc-800'
-                } ${(isCapturing || isRecording) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                } ${(isCapturing || isRecording || cameraStatus !== 'ready') ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 Video
               </button>
@@ -764,10 +778,10 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
           >
             <button
               onClick={capturePhoto}
-              disabled={!isReady || isCapturing}
+              disabled={cameraStatus !== 'ready' || isCapturing}
               className={`
                 ${isMobile ? 'w-20 h-20' : 'w-20 h-20'} rounded-full border-2 flex items-center justify-center transition-all duration-200 shadow-2xl backdrop-blur-md
-                ${!isReady || isCapturing 
+                ${cameraStatus !== 'ready' || isCapturing 
                   ? 'opacity-50 cursor-not-allowed bg-zinc-700/50 border-white/20' 
                   : 'cursor-pointer bg-zinc-700/70 hover:bg-zinc-600/80 hover:scale-105 active:scale-95 border-white/30 hover:border-white/50'
                 }
@@ -790,14 +804,14 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
           >
             <button
               onClick={isRecording ? stopRecording : startRecording}
-              disabled={!isReady}
+              disabled={cameraStatus !== 'ready'}
               className={`
                 ${isMobile ? 'w-20 h-20' : 'w-20 h-20'} rounded-full flex items-center justify-center transition-all duration-300 shadow-2xl border-2 backdrop-blur-md
                 ${isRecording 
                   ? 'bg-red-500/80 hover:bg-red-600/90 border-white/30 hover:border-white/50' 
                   : 'bg-zinc-700/70 hover:bg-zinc-600/80 hover:scale-105 border-white/30 hover:border-white/50'
                 }
-                ${!isReady ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                ${cameraStatus !== 'ready' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
               `}
               style={{
                 backdropFilter: 'blur(12px)',
@@ -840,17 +854,19 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
           <div className="flex space-x-4">
             <button
               onClick={() => onModeChange('photo')}
+              disabled={cameraStatus !== 'ready'}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
                 mode === 'photo' ? 'bg-white text-zinc-900' : 'text-zinc-400'
-              }`}
+              } ${cameraStatus !== 'ready' ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               Photo
             </button>
             <button
               onClick={() => onModeChange('video')}
+              disabled={cameraStatus !== 'ready'}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
                 mode === 'video' ? 'bg-white text-zinc-900' : 'text-zinc-400'
-              }`}
+              } ${cameraStatus !== 'ready' ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               Video
             </button>
@@ -865,7 +881,7 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
           <button
             onClick={handleSwitchCameraClick}
             className="bg-zinc-800/80 text-gray-100 p-4 rounded-full hover:bg-zinc-700 transition-all duration-200 backdrop-blur-xl border border-zinc-700 shadow-lg"
-            disabled={isCapturing || isRecording || !isReady}
+            disabled={isCapturing || isRecording || cameraStatus !== 'ready'}
           >
             <SwitchCamera ref={switchCameraIconRef} className="h-6 w-6" />
           </button>
