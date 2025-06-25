@@ -16,18 +16,25 @@ type View = 'camera' | 'gallery' | 'settings';
 function App() {
   const { isMobile, isMobileUserAgent, isMobileScreen, viewportHeight, isPWA } = useMobileDetection();
   
+  // Detect if running in an iframe
+  const [isInIframe, setIsInIframe] = useState(false);
+  
+  useEffect(() => {
+    // Check if the app is running inside an iframe
+    const inIframe = window.self !== window.top;
+    setIsInIframe(inIframe);
+    console.log('App running in iframe:', inIframe);
+  }, []);
+  
   // Helper function to determine if front camera should be used
-  // const shouldUseFrontCamera = (isMobileUserAgent: boolean, isMobileScreen: boolean): boolean => {
-  //   return !isMobileUserAgent && isMobileScreen;
-  // };
+  const shouldUseFrontCamera = (isMobileUserAgent: boolean, isMobileScreen: boolean): boolean => {
+    return !isMobileUserAgent && isMobileScreen;
+  };
   
   // Set initial camera facing based on device type and screen size
-  // const initialCameraFacing = shouldUseFrontCamera(isMobileUserAgent, isMobileScreen) 
-  //   ? 'user' 
-  //   : 'environment';
-  
-  // Default to rear camera for now
-  const initialCameraFacing = 'environment';
+  const initialCameraFacing = (isInIframe && shouldUseFrontCamera(isMobileUserAgent, isMobileScreen))
+    ? 'user' 
+    : 'environment';
 
   const [currentView, setCurrentView] = useState<View>('camera');
   const [cameraMode, setCameraMode] = useState<CameraMode>('photo');
@@ -42,16 +49,19 @@ function App() {
   const isLoadingScreenDisabled = import.meta.env.VITE_APP_DISABLE_LOADING_SCREEN === 'true';
   
   // Dynamic camera facing: update when device type or screen size changes
-  // useEffect(() => {
-  //   const newCameraFacing = shouldUseFrontCamera(isMobileUserAgent, isMobileScreen) 
-  //     ? 'user' 
-  //     : 'environment';
-  //   
-  //   // Only update if the camera facing should actually change
-  //   if (newCameraFacing !== cameraFacing) {
-  //     setCameraFacing(newCameraFacing);
-  //   }
-  // }, [isMobileUserAgent, isMobileScreen, cameraFacing]);
+  useEffect(() => {
+    // Only apply special camera facing logic when running in an iframe
+    if (!isInIframe) return;
+    
+    const newCameraFacing = shouldUseFrontCamera(isMobileUserAgent, isMobileScreen) 
+      ? 'user' 
+      : 'environment';
+    
+    // Only update if the camera facing should actually change
+    if (newCameraFacing !== cameraFacing) {
+      setCameraFacing(newCameraFacing);
+    }
+  }, [isInIframe, isMobileUserAgent, isMobileScreen, cameraFacing]);
   
   const {
     capturedMedia,
