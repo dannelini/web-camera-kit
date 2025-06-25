@@ -21,43 +21,35 @@ export const useMobileDetection = () => {
       setViewportHeight(`${window.innerHeight}px`);
     };
 
-    const checkAndSetMobile = () => {
+    const checkMobile = () => {
       const userAgent = navigator.userAgent.toLowerCase();
       const mobileKeywords = ['android', 'iphone', 'ipad', 'ipod', 'blackberry', 'windows phone'];
       const isMobileUserAgent = mobileKeywords.some(keyword => userAgent.includes(keyword));
       const isMobileScreen = window.innerWidth <= 768;
-      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
       
-      // Prioritize user agent detection over screen size
-      // Only consider screen size for touch devices without clear mobile user agent
-      if (isMobileUserAgent) {
-        // Definitely mobile based on user agent
-        setIsMobile(true);
-      } else if (isTouchDevice && isMobileScreen) {
-        // Touch device with small screen (probably tablet in portrait)
-        setIsMobile(true);
-      } else {
-        // Desktop device (even if window is small)
-        setIsMobile(false);
-      }
+      setIsMobile(isMobileUserAgent || isMobileScreen);
       
       // Update viewport height when mobile state changes
-      if (isMobileUserAgent || (isTouchDevice && isMobileScreen)) {
+      if (isMobileUserAgent || isMobileScreen) {
         updateViewportHeight();
-        checkPWAMode();
       }
     };
 
-    const handleResize = () => {
-      checkAndSetMobile();
-    };
+    checkPWAMode();
+    checkMobile();
     
-    // Initial checks
-    checkAndSetMobile();
-    updateViewportHeight();
+    // Add both resize listeners
+    const handleResize = () => {
+      checkMobile();
+      updateViewportHeight();
+      checkPWAMode();
+    };
     
     window.addEventListener('resize', handleResize);
     window.addEventListener('orientationchange', updateViewportHeight);
+    
+    // Initial viewport height calculation
+    updateViewportHeight();
     
     return () => {
       window.removeEventListener('resize', handleResize);
