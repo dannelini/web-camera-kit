@@ -398,7 +398,7 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
     // Hide camera transition overlay with delay and fade out animation on mobile
     if (isMobile && showCameraTransitionOverlay) {
       console.log('Camera loaded, will hide overlay after 1 second...');
-      // Wait 1 second for camera to stabilize, then fade out over 0.5 seconds
+      // Wait 0.5 seconds for camera to stabilize, then fade out over 0.5 seconds
       setTimeout(() => {
         if (transitionOverlayRef.current) {
           console.log('Fading out camera transition overlay...');
@@ -412,7 +412,7 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
             }
           });
         }
-      }, 1000);
+      }, 500);
     }
   }, [isMobile, showCameraTransitionOverlay, videoConstraints]);
 
@@ -552,6 +552,16 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
       console.log('Starting camera transition overlay...');
       setShowCameraTransitionOverlay(true);
       
+      // Fade in the overlay quickly
+      setTimeout(() => {
+        if (transitionOverlayRef.current) {
+          gsap.fromTo(transitionOverlayRef.current, 
+            { opacity: 0 }, 
+            { opacity: 1, duration: 0.1, ease: "power2.out" }
+          );
+        }
+      }, 10);
+      
       // Small delay to ensure the overlay is rendered, then trigger camera switch
       setTimeout(() => {
         console.log('Triggering camera switch...');
@@ -623,7 +633,7 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
         {isMobile && showCameraTransitionOverlay && (
           <div
             ref={transitionOverlayRef}
-            className="absolute inset-0 z-10 opacity-100 bg-zinc-900"
+            className="absolute inset-0 z-10 opacity-0 bg-zinc-900"
           />
         )}
 
