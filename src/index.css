@@ -25,6 +25,43 @@ html, body {
   height: 100%;
 }
 
+/* Custom scrollbar styling for dark theme */
+/* Webkit browsers (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(63, 63, 70, 0.6); /* zinc-700 with opacity */
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(82, 82, 91, 0.8); /* zinc-600 with opacity */
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: rgba(113, 113, 122, 0.9); /* zinc-500 with opacity */
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(63, 63, 70, 0.6) transparent;
+}
+
+/* Mobile scrollbar (iOS Safari) */
+@supports (-webkit-touch-callout: none) {
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+}
 #root {
   height: 100%;
 }
