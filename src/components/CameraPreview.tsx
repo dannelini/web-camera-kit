@@ -396,22 +396,25 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
     setRetryCount(0);
     
     // Hide camera transition overlay with delay and fade out animation on mobile
-    if (isMobile && showCameraTransitionOverlay && transitionOverlayRef.current) {
+    if (isMobile && showCameraTransitionOverlay) {
+      console.log('Camera loaded, will hide overlay after 1 second...');
       // Wait 1 second for camera to stabilize, then fade out over 0.5 seconds
       setTimeout(() => {
         if (transitionOverlayRef.current) {
+          console.log('Fading out camera transition overlay...');
           gsap.to(transitionOverlayRef.current, {
             opacity: 0,
             duration: 0.5,
             ease: "power2.out",
             onComplete: () => {
+              console.log('Camera transition overlay hidden');
               setShowCameraTransitionOverlay(false);
             }
           });
         }
       }, 1000);
     }
-  }, [isMobile, videoConstraints]);
+  }, [isMobile, showCameraTransitionOverlay, videoConstraints]);
 
   const handleUserMediaError = useCallback((error: string | DOMException) => {
     console.error('Camera error:', error);
@@ -546,26 +549,14 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
   const handleSwitchCameraClick = useCallback(() => {
     // Show transition overlay before camera switch on mobile
     if (isMobile && !showCameraTransitionOverlay) {
+      console.log('Starting camera transition overlay...');
       setShowCameraTransitionOverlay(true);
       
-      // Animate overlay fade in
-      if (transitionOverlayRef.current) {
-        gsap.fromTo(transitionOverlayRef.current, 
-          { opacity: 0 },
-          { 
-            opacity: 1, 
-            duration: 0.2, 
-            ease: "power2.out",
-            onComplete: () => {
-              // Trigger the camera switch after overlay is visible
-              onFacingChange();
-            }
-          }
-        );
-      } else {
-        // Fallback if ref is not available
+      // Small delay to ensure the overlay is rendered, then trigger camera switch
+      setTimeout(() => {
+        console.log('Triggering camera switch...');
         onFacingChange();
-      }
+      }, 50);
     } else {
       // Desktop or overlay already showing
       onFacingChange();
@@ -620,6 +611,7 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
           videoConstraints={videoConstraints}
           onUserMedia={handleUserMedia}
           onUserMediaError={handleUserMediaError}
+          key={`webcam-${facing}-${selectedDeviceId}-${retryCount}`}
           className="w-full h-full object-cover"
           style={{
             aspectRatio: '16/9'
@@ -631,8 +623,7 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
         {isMobile && showCameraTransitionOverlay && (
           <div
             ref={transitionOverlayRef}
-            className="absolute inset-0 bg-black z-10"
-            style={{ opacity: 0 }}
+            className="absolute inset-0 bg-black z-10 opacity-100"
           />
         )}
 
