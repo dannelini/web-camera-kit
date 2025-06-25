@@ -53,7 +53,6 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
   const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
   const [retryCount, setRetryCount] = useState(0);
   const [isInitializing, setIsInitializing] = useState(false);
-  const [isSwitchingCamera, setIsSwitchingCamera] = useState(false);
   const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const { isMobile, isMobileUserAgent, isMobileScreen } = useMobileDetection();
@@ -310,15 +309,12 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
 
   // Reset state when facing or mobile detection changes
   useEffect(() => {
-    // Don't reset during intentional camera switching
-    if (isSwitchingCamera) return;
-    
     setIsInitializing(true);
     setIsReady(false);
     setError(null);
     setMediaStream(null);
     setIsRecording(false);
-    setRetryCount(0);
+    // Don't reset retry count on facing change to maintain unique keys
     
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
@@ -389,8 +385,11 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
   }, [onCapture, createMediaFromBlob, setIsCapturing]);
 
   const handleUserMedia = useCallback((stream: MediaStream) => {
-    // Clear switching state when camera successfully starts
-    setIsSwitchingCamera(false);
+    console.log('Camera stream started successfully:', {
+      facing,
+      isMobile,
+      tracks: stream.getVideoTracks().map(track => ({ label: track.label, settings: track.getSettings() }))
+    });
     
     const videoTrack = stream.getVideoTracks()[0];
     if (videoTrack) {
@@ -408,19 +407,13 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
 
   const handleUserMediaError = useCallback((error: string | DOMException) => {
     console.error('Camera error:', error);
-    
-    // Clear switching state on error
-    setIsSwitchingCamera(false);
-    
-    // Log additional details for mobile debugging
-    if (isMobile) {
-      console.log('Mobile camera error details:', {
-        facing,
-        error: error,
-        retryCount,
-        videoConstraints
-      });
-    }
+    console.log('Camera error details:', {
+      facing,
+      isMobile,
+      error: error.toString(),
+      retryCount,
+      videoConstraints
+    });
     
     setIsInitializing(false);
     setIsReady(false);
@@ -551,47 +544,42 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
 
   // Handle camera switch with animation
   const handleSwitchCameraClick = useCallback(() => {
-    if (isSwitchingCamera || !isReady) {
-      console.log('Mobile: Camera switch already in progress or camera not ready');
+    if (!isReady) {
+      console.log('Camera not ready for switching');
       return;
     }
     
-    console.log('Mobile: Switching camera from', facing, 'to', facing === 'user' ? 'environment' : 'user');
+    console.log('Switching camera from', facing, 'to', facing === 'user' ? 'environment' : 'user');
     
-    // Set switching state to prevent multiple switches
-    setIsSwitchingCamera(true);
-    setIsReady(false);
-    setError(null);
-    
-    // Stop current stream explicitly before switching
+    // Immediately stop current streams
     if (mediaStream) {
-      console.log('Mobile: Stopping current camera stream before switch');
+      console.log('Stopping current camera stream');
       mediaStream.getTracks().forEach(track => {
+        console.log('Stopping track:', track.label);
         track.stop();
       });
-      setMediaStream(null);
     }
     
-    // Stop any processed streams
     if (processedStreamRef.current) {
       processedStreamRef.current.getTracks().forEach(track => {
         track.stop();
       });
-      processedStreamRef.current = null;
     }
     
-    // Add a delay for mobile web to ensure cleanup is complete
-    setTimeout(() => {
-      // Trigger the camera switch
-      onFacingChange();
-      
-      // Force remount by incrementing retry count after a short delay
-      setTimeout(() => {
-        setRetryCount(prev => prev + 1);
-      }, 100);
-    }, isMobile ? 300 : 100);
+    // Reset states
+    setIsReady(false);
+    setMediaStream(null);
+    setError(null);
     
-    // Trigger the camera switch
+    // Increment retry count first to force new key, then change facing
+    setRetryCount(prev => {
+      const newCount = prev + 1;
+      // Use setTimeout to ensure state update completes before facing change
+      setTimeout(() => {
+        onFacingChange();
+      }, 50);
+      return newCount;
+    });
     
     // Animate the icon
     if (switchCameraIconRef.current) {
@@ -608,7 +596,7 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
         ease: "power2.out"
       });
     }
-  }, [onFacingChange, isSwitchingCamera, isReady, mediaStream, isMobile]);
+  }, [onFacingChange, isReady, mediaStream, facing]);
 
   // Force camera reinitialization for PWA
   const handlePWARetry = useCallback(() => {
@@ -649,30 +637,21 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
         />
 
         {/* Loading State */}
-        {((!isReady && !error) || isInitializing || isSwitchingCamera) && (
+        {((!isReady && !error) || isInitializing) && (
           <div className="absolute inset-0 bg-zinc-900 flex items-center justify-center p-6">
             <div className="text-gray-100 text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-100 mx-auto mb-4"></div>
               <p className="font-medium">
-                {isSwitchingCamera 
-                  ? 'Switching camera...' 
-                  : retryCount > 0 
-                    ? `Retrying camera... (${retryCount}/3)` 
-                    : 'Initializing camera...'
-                }
+                {retryCount > 1 ? `Initializing camera... (${retryCount})` : 'Initializing camera...'}
               </p>
               <p className="text-xs text-zinc-400 mt-2 max-w-xs">
                 Device: {isMobile ? 'Mobile' : 'Desktop'} {isPWA ? '(PWA)' : ''} | 
+                Camera: {facing} | 
                 Resolution: {videoConstraints.width.ideal}×{videoConstraints.height.ideal}
               </p>
-              {retryCount > 0 && !isSwitchingCamera && (
+              {retryCount > 3 && (
                 <p className="text-xs text-yellow-400 mt-1">
                   {isPWA ? 'PWA camera initialization in progress...' : 'Attempting to resolve initialization issue...'}
-                </p>
-              )}
-              {isSwitchingCamera && (
-                <p className="text-xs text-blue-400 mt-1">
-                  {isMobile ? 'Mobile camera switching...' : 'Camera switching...'}
                 </p>
               )}
             </div>
@@ -887,7 +866,7 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
           <button
             onClick={handleSwitchCameraClick}
             className="bg-zinc-800/80 text-gray-100 p-4 rounded-full hover:bg-zinc-700 transition-all duration-200 backdrop-blur-xl border border-zinc-700 shadow-lg"
-            disabled={isCapturing || isRecording || isSwitchingCamera || !isReady}
+            disabled={isCapturing || isRecording || !isReady}
           >
             <SwitchCamera ref={switchCameraIconRef} className="h-6 w-6" />
           </button>
