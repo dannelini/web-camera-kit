@@ -623,7 +623,15 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
         {isMobile && showCameraTransitionOverlay && (
           <div
             ref={transitionOverlayRef}
-            className="absolute inset-0 bg-black z-10 opacity-100"
+            className="absolute inset-0 z-10 opacity-100"
+            style={{
+              background: `
+                radial-gradient(ellipse at 20% 80%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(139, 92, 246, 0.12) 0%, transparent 50%),
+                radial-gradient(ellipse at 40% 40%, rgba(6, 182, 212, 0.08) 0%, transparent 50%),
+                linear-gradient(135deg, #0a0a0a 0%, #111111 25%, #0f0f0f 50%, #0d0d0d 75%, #0a0a0a 100%)
+              `
+            }}
           />
         )}
 
@@ -855,8 +863,9 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
         {isMobile && (
           <button
             onClick={handleSwitchCameraClick}
-            className="bg-zinc-800/80 text-gray-100 p-4 rounded-full hover:bg-zinc-700 transition-all duration-200 backdrop-blur-xl border border-zinc-700 shadow-lg relative z-20"
+            className="bg-zinc-800/80 text-gray-100 p-4 rounded-full hover:bg-zinc-700 transition-all duration-200 backdrop-blur-xl border border-zinc-700 shadow-lg relative z-50"
             disabled={isCapturing || isRecording}
+            style={{ position: 'relative', zIndex: 50 }}
           >
             <SwitchCamera ref={switchCameraIconRef} className="h-6 w-6" />
           </button>
