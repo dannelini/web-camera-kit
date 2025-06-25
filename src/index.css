@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Apply Manrope font globally with comprehensive coverage */
+*, *::before, *::after {
+  font-family: 'Manrope', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+/* Ensure all text elements use Manrope */
+body, html, div, span, p, h1, h2, h3, h4, h5, h6, 
+button, input, select, textarea, label, a, li, ul, ol,
+.font-sans, .text-sm, .text-xs, .text-lg, .text-xl, .text-2xl, .text-3xl, .text-4xl {
+  font-family: 'Manrope', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+/* Disable zoom and overscroll behavior on mobile */
+html, body {
+  touch-action: pan-x pan-y;
+  overscroll-behavior: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  background-color: #09090b;
+  height: 100%;
+}
+
+#root {
+  height: 100%;
+}
