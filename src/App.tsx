@@ -279,13 +279,13 @@ function App() {
             <div 
               ref={mainContentRef}
               key={currentView}
-              className={isMobile ? 'h-full flex flex-col' : 'space-y-6'}
+              className={isMobile ? 'h-full flex flex-col' : 'h-full flex flex-col space-y-6'}
             >
               {/* Camera Preview */}
               <div className={`${isMobile ? 'flex-1' : 'w-full'} ${
                 isMobile
                   ? 'h-full' 
-                  : 'aspect-video'
+                  : 'flex-grow'
               }`}>
                 <CameraPreview
                   mode={cameraMode}

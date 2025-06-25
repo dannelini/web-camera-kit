@@ -57,22 +57,6 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
 
   const { isMobile, isMobileUserAgent, isMobileScreen } = useMobileDetection();
 
-  // Check if desktop has constrained vertical space
-  const isDesktopConstrained = !isMobile && window.innerHeight < 800;
-
-  // Calculate camera height based on device type and PWA status
-  const getCameraHeight = () => {
-    // Special case: Desktop browser with mobile screen width (narrow window)
-    if (!isMobileUserAgent && isMobileScreen) {
-      return isPWA ? '90vh' : '88vh'; // Extended height for this specific case
-    }
-    
-    if (isMobile) {
-      return isPWA ? '82vh' : '76vh'; // More space in PWA mode
-    }
-    return '63vh'; // Desktop
-  };
-
   // Enumerate video devices for desktop
   useEffect(() => {
     if (!isMobile) {
@@ -568,11 +552,11 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
   }, []);
 
   return (
-    <div className="relative space-y-1">
+    <div className={`relative ${isMobile ? 'space-y-1' : 'flex flex-col h-full space-y-1'}`}>
       {/* Camera Preview */}
       <div className={`relative w-full bg-black overflow-hidden shadow-2xl ${
-        isMobile ? 'mx-auto' : 'rounded-2xl border border-zinc-700'
-      }`} style={{ height: getCameraHeight() }}>
+        isMobile ? 'mx-auto' : 'rounded-2xl border border-zinc-700 flex-grow flex-shrink-0'
+      }`} style={isMobile ? { height: isPWA ? '82vh' : '76vh' } : {}}>
         {/* Camera Component */}
         <Webcam
           ref={webcamRef}
@@ -765,9 +749,7 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
       </div>
 
       {/* Controls Section - Below camera feed */}
-      <div className={`flex items-center justify-center px-6 pt-4 ${
-        !isMobile && window.innerHeight < 800 ? 'pb-2' : 'pb-4'
-      }`}>
+      <div className={`flex items-center justify-center px-6 pt-4 pb-4 ${!isMobile ? 'flex-shrink' : ''}`}>
         {/* Gallery Button for Mobile - Left */}
         {isMobile && (
           <button
