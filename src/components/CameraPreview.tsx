@@ -623,15 +623,7 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
         {isMobile && showCameraTransitionOverlay && (
           <div
             ref={transitionOverlayRef}
-            className="absolute inset-0 z-10 opacity-100"
-            style={{
-              background: `
-                radial-gradient(ellipse at 20% 80%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
-                radial-gradient(ellipse at 80% 20%, rgba(139, 92, 246, 0.12) 0%, transparent 50%),
-                radial-gradient(ellipse at 40% 40%, rgba(6, 182, 212, 0.08) 0%, transparent 50%),
-                linear-gradient(135deg, #0a0a0a 0%, #111111 25%, #0f0f0f 50%, #0d0d0d 75%, #0a0a0a 100%)
-              `
-            }}
+            className="absolute inset-0 z-10 opacity-100 bg-zinc-900"
           />
         )}
 
@@ -759,13 +751,14 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
           <div 
             ref={captureButtonRef}
             key={mode}
-            className="absolute bottom-6 left-1/2 transform -translate-x-1/2"
+            className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-50"
+            style={{ zIndex: 100 }}
           >
             <button
               onClick={capturePhoto}
               disabled={!isReady || isCapturing}
               className={`
-                ${isMobile ? 'w-20 h-20' : 'w-20 h-20'} rounded-full border-2 flex items-center justify-center transition-all duration-200 shadow-2xl backdrop-blur-md
+                ${isMobile ? 'w-20 h-20' : 'w-20 h-20'} rounded-full border-2 flex items-center justify-center transition-all duration-200 shadow-2xl backdrop-blur-md relative z-50
                 ${!isReady || isCapturing 
                   ? 'opacity-50 cursor-not-allowed bg-zinc-700/50 border-white/20' 
                   : 'cursor-pointer bg-zinc-700/70 hover:bg-zinc-600/80 hover:scale-105 active:scale-95 border-white/30 hover:border-white/50'
@@ -774,6 +767,7 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
               style={{
                 backdropFilter: 'blur(12px)',
                 WebkitBackdropFilter: 'blur(12px)',
+                zIndex: 100
               }}
             >
               <Camera className={`${isMobile ? 'h-8 w-8' : 'h-8 w-8'} text-white/80`} />
@@ -785,13 +779,14 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
           <div 
             ref={captureButtonRef}
             key={mode}
-            className="absolute bottom-6 left-1/2 transform -translate-x-1/2"
+            className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-50"
+            style={{ zIndex: 100 }}
           >
             <button
               onClick={isRecording ? stopRecording : startRecording}
               disabled={!isReady}
               className={`
-                ${isMobile ? 'w-20 h-20' : 'w-20 h-20'} rounded-full flex items-center justify-center transition-all duration-300 shadow-2xl border-2 backdrop-blur-md
+                ${isMobile ? 'w-20 h-20' : 'w-20 h-20'} rounded-full flex items-center justify-center transition-all duration-300 shadow-2xl border-2 backdrop-blur-md relative z-50
                 ${isRecording 
                   ? 'bg-red-500/80 hover:bg-red-600/90 border-white/30 hover:border-white/50' 
                   : 'bg-zinc-700/70 hover:bg-zinc-600/80 hover:scale-105 border-white/30 hover:border-white/50'
@@ -801,6 +796,7 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
               style={{
                 backdropFilter: 'blur(12px)',
                 WebkitBackdropFilter: 'blur(12px)',
+                zIndex: 100
               }}
             >
               {isRecording ? (
