@@ -54,6 +54,8 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
   const [retryCount, setRetryCount] = useState(0);
   const [isInitializing, setIsInitializing] = useState(false);
   const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [showCameraTransitionOverlay, setShowCameraTransitionOverlay] = useState(false);
+  const transitionOverlayRef = useRef<HTMLDivElement>(null);
 
   const { isMobile, isMobileUserAgent, isMobileScreen } = useMobileDetection();
 
@@ -326,11 +328,6 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
       mediaRecorderRef.current.stop();
     }
     mediaRecorderRef.current = null;
-    
-    // Add a small delay to ensure cleanup is complete
-    setTimeout(() => {
-      setIsInitializing(false);
-    }, 100);
   }, [facing, isMobile, selectedDeviceId]);
 
   const startRecording = useCallback(() => {
@@ -397,6 +394,18 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
     setError(null);
     setMediaStream(stream);
     setRetryCount(0);
+    
+    // Hide camera transition overlay with fade out animation on mobile
+    if (isMobile && showCameraTransitionOverlay && transitionOverlayRef.current) {
+      gsap.to(transitionOverlayRef.current, {
+        opacity: 0,
+        duration: 0.2,
+        ease: "power2.out",
+        onComplete: () => {
+          setShowCameraTransitionOverlay(false);
+        }
+      });
+    }
   }, [isMobile, videoConstraints]);
 
   const handleUserMediaError = useCallback((error: string | DOMException) => {
@@ -530,8 +539,32 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
 
   // Handle camera switch with animation
   const handleSwitchCameraClick = useCallback(() => {
-    // Trigger the camera switch
-    onFacingChange();
+    // Show transition overlay before camera switch on mobile
+    if (isMobile && !showCameraTransitionOverlay) {
+      setShowCameraTransitionOverlay(true);
+      
+      // Animate overlay fade in
+      if (transitionOverlayRef.current) {
+        gsap.fromTo(transitionOverlayRef.current, 
+          { opacity: 0 },
+          { 
+            opacity: 1, 
+            duration: 0.15, 
+            ease: "power2.out",
+            onComplete: () => {
+              // Trigger the camera switch after overlay is visible
+              onFacingChange();
+            }
+          }
+        );
+      } else {
+        // Fallback if ref is not available
+        onFacingChange();
+      }
+    } else {
+      // Desktop or overlay already showing
+      onFacingChange();
+    }
     
     // Animate the icon
     if (switchCameraIconRef.current) {
@@ -548,7 +581,7 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
         ease: "power2.out"
       });
     }
-  }, [onFacingChange]);
+  }, [isMobile, showCameraTransitionOverlay, onFacingChange]);
 
   // Force camera reinitialization for PWA
   const handlePWARetry = useCallback(() => {
@@ -582,13 +615,21 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
           videoConstraints={videoConstraints}
           onUserMedia={handleUserMedia}
           onUserMediaError={handleUserMediaError}
-          key={`webcam-${facing}-${selectedDeviceId}-${retryCount}`}
           className="w-full h-full object-cover"
           style={{
             aspectRatio: '16/9'
           }}
           mirrored={isMobile ? facing === 'user' : true}
         />
+
+        {/* Camera Transition Overlay - Mobile Only */}
+        {isMobile && showCameraTransitionOverlay && (
+          <div
+            ref={transitionOverlayRef}
+            className="absolute inset-0 bg-black z-10"
+            style={{ opacity: 0 }}
+          />
+        )}
 
         {/* Loading State */}
         {((!isReady && !error) || isInitializing) && (
