@@ -54,57 +54,27 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
   const [retryCount, setRetryCount] = useState(0);
   const [isInitializing, setIsInitializing] = useState(false);
   const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [cameraHeight, setCameraHeight] = useState('75vh');
 
   const { isMobile } = useMobileDetection();
 
-  // Update camera height on window resize
-  useEffect(() => {
-    // Calculate camera height based on device type and PWA status
-    const getCameraHeight = () => {
-      if (isMobile) {
-        return isPWA ? '82vh' : '76vh'; // More space in PWA mode
-      }
-      
-      // Desktop: Use much more height for narrow windows
-      const windowWidth = window.innerWidth;
-      const windowHeight = window.innerHeight;
-      const aspectRatio = windowWidth / windowHeight;
-      
-      // Check for mobile-like aspect ratios on desktop
-      if (aspectRatio < 1.0) {
-        // Portrait orientation (taller than wide) - use almost full height
-        return '94vh';
-      } else if (aspectRatio < 1.3) {
-        // Very narrow/tall aspect ratio - use most of the height
-        return '90vh';
-      } else if (windowWidth <= 800) {
-        // Very narrow desktop window by width - use almost full height
-        return '88vh';
-      } else if (windowWidth <= 1000) {
-        // Narrow desktop window - use most of the height
-        return '84vh';
-      } else if (windowWidth <= 1300) {
-        // Medium desktop window
-        return '80vh';
-      }
-      return '75vh'; // Wide desktop
-    };
-
-    const updateCameraHeight = () => {
-      setCameraHeight(getCameraHeight());
-    };
-
-    // Set initial height
-    updateCameraHeight();
-
-    // Add resize listener
-    window.addEventListener('resize', updateCameraHeight);
+  // Calculate camera height based on device type and PWA status
+  const getCameraHeight = () => {
+    if (isMobile) {
+      return isPWA ? '82vh' : '76vh'; // More space in PWA mode
+    }
     
-    return () => {
-      window.removeEventListener('resize', updateCameraHeight);
-    };
-  }, [isMobile, isPWA]);
+    // Desktop: Use more height for narrow windows
+    const windowWidth = window.innerWidth;
+    if (windowWidth <= 900) {
+      // Narrow desktop window - use more vertical space
+      return '75vh';
+    } else if (windowWidth <= 1200) {
+      // Medium desktop window
+      return '70vh';
+    }
+    return '65vh'; // Wide desktop
+  };
+
   // Enumerate video devices for desktop
   useEffect(() => {
     if (!isMobile) {
@@ -604,7 +574,7 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
       {/* Camera Preview */}
       <div className={`relative w-full bg-black overflow-hidden shadow-2xl ${
         isMobile ? 'mx-auto' : 'rounded-2xl border border-zinc-700'
-      }`} style={{ height: cameraHeight }}>
+      }`} style={{ height: getCameraHeight() }}>
         {/* Camera Component */}
         <Webcam
           ref={webcamRef}
