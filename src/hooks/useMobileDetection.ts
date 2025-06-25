@@ -35,12 +35,27 @@ export const useMobileDetection = () => {
       }
     };
 
-    checkPWAMode();
-    checkMobile();
     
+    // Check for touch capability as additional indicator
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    checkMobile();
+    // Prioritize user agent detection over screen size
+    // Only consider screen size for touch devices without clear mobile user agent
+    const isMobileScreen = window.innerWidth <= 768;
+    
+    if (isMobileUserAgent) {
+      // Definitely mobile based on user agent
+      setIsMobile(true);
+    } else if (isTouchDevice && isMobileScreen) {
+      // Touch device with small screen (probably tablet in portrait)
+      setIsMobile(true);
+    } else {
+      // Desktop device (even if window is small)
+      setIsMobile(false);
+    }
     // Add both resize listeners
     const handleResize = () => {
-      checkMobile();
+    if (isMobileUserAgent || (isTouchDevice && isMobileScreen)) {
       updateViewportHeight();
       checkPWAMode();
     };
