@@ -38,6 +38,18 @@ function App() {
   // Check if loading screen is disabled via environment variable
   const isLoadingScreenDisabled = import.meta.env.VITE_APP_DISABLE_LOADING_SCREEN === 'true';
   
+  // Dynamic camera facing: update when device type or screen size changes
+  useEffect(() => {
+    const newCameraFacing = shouldUseFrontCamera(isMobileUserAgent, isMobileScreen) 
+      ? 'user' 
+      : 'environment';
+    
+    // Only update if the camera facing should actually change
+    if (newCameraFacing !== cameraFacing) {
+      setCameraFacing(newCameraFacing);
+    }
+  }, [isMobileUserAgent, isMobileScreen, cameraFacing]);
+  
   const {
     capturedMedia,
     isCapturing,
