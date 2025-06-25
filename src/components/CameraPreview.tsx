@@ -56,9 +56,15 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
   const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const { isMobile } = useMobileDetection();
+  const { isMobile, isMobileUserAgent, isMobileScreen } = useMobileDetection();
 
   // Calculate camera height based on device type and PWA status
   const getCameraHeight = () => {
+    // Special case: Desktop browser with mobile screen width (narrow window)
+    if (!isMobileUserAgent && isMobileScreen) {
+      return isPWA ? '90vh' : '88vh'; // Extended height for this specific case
+    }
+    
     if (isMobile) {
       return isPWA ? '82vh' : '76vh'; // More space in PWA mode
     }
