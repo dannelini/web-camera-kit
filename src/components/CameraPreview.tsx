@@ -116,7 +116,7 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
         width: { ideal: 1280, max: 1920 },
         height: { ideal: 720, max: 1080 },
         facingMode: facing,
-        // Remove aspectRatio for mobile to avoid conflicts with camera switching
+        aspectRatio: 16/9
       };
     } else {
       return {
@@ -401,17 +401,6 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
 
   const handleUserMediaError = useCallback((error: string | DOMException) => {
     console.error('Camera error:', error);
-    
-    // Log additional details for mobile debugging
-    if (isMobile) {
-      console.log('Mobile camera error details:', {
-        facing,
-        error: error,
-        retryCount,
-        videoConstraints
-      });
-    }
-    
     setIsInitializing(false);
     setIsReady(false);
     setMediaStream(null);
@@ -541,8 +530,6 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
 
   // Handle camera switch with animation
   const handleSwitchCameraClick = useCallback(() => {
-    console.log('Mobile: Switching camera from', facing, 'to', facing === 'user' ? 'environment' : 'user');
-    
     // Trigger the camera switch
     onFacingChange();
     
@@ -597,7 +584,9 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
           onUserMediaError={handleUserMediaError}
           key={`webcam-${facing}-${selectedDeviceId}-${retryCount}`}
           className="w-full h-full object-cover"
-          style={isMobile ? {} : { aspectRatio: '16/9' }}
+          style={{
+            aspectRatio: '16/9'
+          }}
           mirrored={isMobile ? facing === 'user' : true}
         />
 
