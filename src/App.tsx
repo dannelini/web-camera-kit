@@ -14,15 +14,6 @@ import { CameraMode, CameraFacing } from './types/media';
 type View = 'camera' | 'gallery' | 'settings';
 
 function App() {
-  const [currentView, setCurrentView] = useState<View>('camera');
-  const [cameraMode, setCameraMode] = useState<CameraMode>('photo');
-  const [cameraFacing, setCameraFacing] = useState<CameraFacing>(initialCameraFacing);
-  const [permissionState, setPermissionState] = useState<'loading' | 'granted' | 'denied'>('loading');
-  const [initialPermissionChecked, setInitialPermissionChecked] = useState(false);
-  const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
-  const [selectedMediaForPreview, setSelectedMediaForPreview] = useState<CapturedMedia | null>(null);
-  const mainContentRef = useRef<HTMLDivElement>(null);
-  
   const { isMobile, isMobileUserAgent, isMobileScreen, viewportHeight, isPWA } = useMobileDetection();
   
   // Helper function to determine if front camera should be used
@@ -34,6 +25,15 @@ function App() {
   const initialCameraFacing = shouldUseFrontCamera(isMobileUserAgent, isMobileScreen) 
     ? 'user' 
     : 'environment';
+
+  const [currentView, setCurrentView] = useState<View>('camera');
+  const [cameraMode, setCameraMode] = useState<CameraMode>('photo');
+  const [cameraFacing, setCameraFacing] = useState<CameraFacing>(initialCameraFacing);
+  const [permissionState, setPermissionState] = useState<'loading' | 'granted' | 'denied'>('loading');
+  const [initialPermissionChecked, setInitialPermissionChecked] = useState(false);
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
+  const [selectedMediaForPreview, setSelectedMediaForPreview] = useState<CapturedMedia | null>(null);
+  const mainContentRef = useRef<HTMLDivElement>(null);
   
   // Check if loading screen is disabled via environment variable
   const isLoadingScreenDisabled = import.meta.env.VITE_APP_DISABLE_LOADING_SCREEN === 'true';
