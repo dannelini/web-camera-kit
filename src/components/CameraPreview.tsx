@@ -62,17 +62,7 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
     if (isMobile) {
       return isPWA ? '82vh' : '76vh'; // More space in PWA mode
     }
-    
-    // Desktop: Use more height for narrow windows
-    const windowWidth = window.innerWidth;
-    if (windowWidth <= 900) {
-      // Narrow desktop window - use more vertical space
-      return '75vh';
-    } else if (windowWidth <= 1200) {
-      // Medium desktop window
-      return '70vh';
-    }
-    return '65vh'; // Wide desktop
+    return '63vh'; // Desktop
   };
 
   // Enumerate video devices for desktop

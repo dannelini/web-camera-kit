@@ -263,7 +263,7 @@ function App() {
               <div className={`${isMobile ? 'flex-1' : 'w-full'} ${
                 isMobile
                   ? 'h-full' 
-                  : window.innerWidth <= 900 ? '' : 'aspect-video'
+                  : 'aspect-video'
               }`}>
                 <CameraPreview
                   mode={cameraMode}
