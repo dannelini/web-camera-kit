@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 
 export const useMobileDetection = () => {
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobileUserAgent, setIsMobileUserAgent] = useState(false);
+  const [isMobileScreen, setIsMobileScreen] = useState(false);
   const [viewportHeight, setViewportHeight] = useState('100vh');
   const [isPWA, setIsPWA] = useState(false);
 
@@ -22,15 +23,15 @@ export const useMobileDetection = () => {
     };
 
     const checkMobile = () => {
-      const userAgent = navigator.userAgent.toLowerCase();
-      const mobileKeywords = ['android', 'iphone', 'ipad', 'ipod', 'blackberry', 'windows phone'];
-      const isMobileUserAgent = mobileKeywords.some(keyword => userAgent.includes(keyword));
-      const isMobileScreen = window.innerWidth <= 768;
+      const ua = navigator.userAgent || navigator.vendor;
+      const isMobile = /android|iphone|ipad|ipod|mobile/i.test(ua);
+      setIsMobileUserAgent(isMobile);
       
-      setIsMobile(isMobileUserAgent || isMobileScreen);
+      const isScreenMobile = window.innerWidth <= 768;
+      setIsMobileScreen(isScreenMobile);
       
       // Update viewport height when mobile state changes
-      if (isMobileUserAgent || isMobileScreen) {
+      if (isMobile || isScreenMobile) {
         updateViewportHeight();
       }
     };
@@ -57,5 +58,14 @@ export const useMobileDetection = () => {
     };
   }, []);
 
-  return { isMobile, viewportHeight, isPWA };
+  // Computed values for backward compatibility
+  const isMobile = isMobileUserAgent || isMobileScreen;
+
+  return { 
+    isMobile, 
+    isMobileUserAgent, 
+    isMobileScreen, 
+    viewportHeight, 
+    isPWA 
+  };
 };
