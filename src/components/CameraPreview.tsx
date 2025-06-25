@@ -54,17 +54,49 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
   const [retryCount, setRetryCount] = useState(0);
   const [isInitializing, setIsInitializing] = useState(false);
   const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [cameraHeight, setCameraHeight] = useState('75vh');
 
   const { isMobile } = useMobileDetection();
 
-  // Calculate camera height based on device type and PWA status
-  const getCameraHeight = () => {
-    if (isMobile) {
-      return isPWA ? '82vh' : '76vh'; // More space in PWA mode
-    }
-    return '63vh'; // Desktop
-  };
+  // Update camera height on window resize
+  useEffect(() => {
+    // Calculate camera height based on device type and PWA status
+    const getCameraHeight = () => {
+      if (isMobile) {
+        return isPWA ? '82vh' : '76vh'; // More space in PWA mode
+      }
+      
+      // Desktop: Use much more height for narrow windows
+      const windowWidth = window.innerWidth;
+      const windowHeight = window.innerHeight;
+      
+      if (windowWidth <= 800) {
+        // Very narrow desktop window - use almost full height
+        return '92vh';
+      } else if (windowWidth <= 1000) {
+        // Narrow desktop window - use most of the height
+        return '88vh';
+      } else if (windowWidth <= 1300) {
+        // Medium desktop window
+        return '82vh';
+      }
+      return '78vh'; // Wide desktop
+    };
 
+    const updateCameraHeight = () => {
+      setCameraHeight(getCameraHeight());
+    };
+
+    // Set initial height
+    updateCameraHeight();
+
+    // Add resize listener
+    window.addEventListener('resize', updateCameraHeight);
+    
+    return () => {
+      window.removeEventListener('resize', updateCameraHeight);
+    };
+  }, [isMobile, isPWA]);
   // Enumerate video devices for desktop
   useEffect(() => {
     if (!isMobile) {
@@ -564,7 +596,7 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
       {/* Camera Preview */}
       <div className={`relative w-full bg-black overflow-hidden shadow-2xl ${
         isMobile ? 'mx-auto' : 'rounded-2xl border border-zinc-700'
-      }`} style={{ height: getCameraHeight() }}>
+      }`} style={{ height: cameraHeight }}>
         {/* Camera Component */}
         <Webcam
           ref={webcamRef}
