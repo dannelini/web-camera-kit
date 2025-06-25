@@ -54,8 +54,37 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
   const [retryCount, setRetryCount] = useState(0);
   const [isInitializing, setIsInitializing] = useState(false);
   const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Detect desktop portrait orientation
+  const [isDesktopPortrait, setIsDesktopPortrait] = useState(false);
 
   const { isMobile } = useMobileDetection();
+
+  // Monitor orientation changes for desktop
+  useEffect(() => {
+    const checkDesktopOrientation = () => {
+      if (!isMobile) {
+        const isPortrait = window.innerHeight > window.innerWidth;
+        setIsDesktopPortrait(isPortrait);
+      } else {
+        setIsDesktopPortrait(false);
+      }
+    };
+
+    checkDesktopOrientation();
+    
+    const handleResize = () => {
+      checkDesktopOrientation();
+    };
+    
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+    
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+    };
+  }, [isMobile]);
 
   // Calculate camera height based on device type and PWA status
   const getCameraHeight = () => {
@@ -219,9 +248,16 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
             ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
           }
           
-          ctx.restore();
-        }
-        
+          // Desktop: mirror based on orientation and camera
+          if (isDesktopPortrait) {
+            // Desktop portrait: always mirror for natural selfie view
+            ctx.scale(-1, 1);
+            ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+          } else {
+            // Desktop landscape: always mirror
+            ctx.scale(-1, 1);
+            ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+          }
         animationFrameRef.current = requestAnimationFrame(processFrame);
       };
 
@@ -230,8 +266,8 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
     };
 
     canvasRef.current = canvas;
-    return canvas.captureStream(30); // 30 FPS processed stream
-  }, [isMobile, facing]);
+    };
+  }, [isMobile, facing, isDesktopPortrait]);
 
   // Initialize processed stream when mediaStream changes
   useEffect(() => {
