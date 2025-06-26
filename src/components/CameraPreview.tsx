@@ -19,6 +19,8 @@ interface CameraPreviewProps {
   onGalleryClick?: () => void;
   capturedMediaCount?: number;
   isPWA?: boolean;
+  shouldShowInitialOverlay?: boolean;
+  onOverlayShown?: () => void;
 }
 
 export const CameraPreview: React.FC<CameraPreviewProps> = ({
@@ -34,7 +36,9 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
   createMediaFromBlob,
   onGalleryClick,
   capturedMediaCount = 0,
-  isPWA = false
+  isPWA = false,
+  shouldShowInitialOverlay = false,
+  onOverlayShown
 }) => {
   const webcamRef = useRef<Webcam>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -324,11 +328,14 @@ export const CameraPreview: React.FC<CameraPreviewProps> = ({
     if (processedStreamRef.current) {
       processedStreamRef.current.getTracks().forEach(track => track.stop());
     }
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-      mediaRecorderRef.current.stop();
-    }
+    if (shouldShowInitialOverlay) {
+      setShowInitialLoadOverlay(true);
+      if (initialLoadOverlayRef.current) {
+        gsap.set(initialLoadOverlayRef.current, { opacity: 1 });
+      }
+      onOverlayShown?.();
     mediaRecorderRef.current = null;
-  }, [facing, isMobile, selectedDeviceId]);
+  }, [shouldShowInitialOverlay, onOverlayShown]);
 
   const startRecording = useCallback(() => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'inactive') {

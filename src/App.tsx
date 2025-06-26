@@ -44,6 +44,7 @@ function App() {
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
   const [selectedMediaForPreview, setSelectedMediaForPreview] = useState<CapturedMedia | null>(null);
   const mainContentRef = useRef<HTMLDivElement>(null);
+  const [shouldShowCameraOverlay, setShouldShowCameraOverlay] = useState(false);
   
   // Check if loading screen is disabled via environment variable
   const isLoadingScreenDisabled = import.meta.env.VITE_APP_DISABLE_LOADING_SCREEN === 'true';
@@ -314,6 +315,8 @@ function App() {
                   onGalleryClick={() => setCurrentView('gallery')}
                   capturedMediaCount={capturedMedia.length}
                   isPWA={isPWA}
+                  shouldShowInitialOverlay={shouldShowCameraOverlay}
+                  onOverlayShown={() => setShouldShowCameraOverlay(false)}
                 />
               </div>
             </div>
@@ -332,7 +335,10 @@ function App() {
                 onClearAll={clearAllMedia}
                 onMediaSelectForPreview={setSelectedMediaForPreview}
                 isMobile={isMobile}
-                onBackToCamera={() => setCurrentView('camera')}
+                onBackToCamera={() => {
+                  setShouldShowCameraOverlay(true);
+                  setCurrentView('camera');
+                }}
               />
             </div>
           )}
