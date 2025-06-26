@@ -4,7 +4,9 @@ A **lightweight, mobile-optimized camera boilerplate** designed for AI vision an
 
 ## 🚀 Live Demo
 
-**[Try the Live Demo](https://web-camera-kit-demo.netlify.app)**
+**[Try the Live Demo](https://camera-kit.netlify.app)**
+
+<img src="./public/demo1.gif" alt="Example" width="700" />
 
 ## ✨ Key Features
 
