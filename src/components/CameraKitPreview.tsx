@@ -6,12 +6,8 @@ interface CameraKitPreviewProps {
   onCapture?: (blob: Blob) => void;
   onModeChange?: (mode: 'photo' | 'video') => void;
   onFacingChange?: () => void;
-  isCapturing?: boolean;
-  setIsCapturing?: (capturing: boolean) => void;
-  createMediaFromBlob?: (blob: Blob, type: 'photo' | 'video') => void;
   onGalleryClick?: () => void;
   capturedMediaCount?: number;
-  isPWA?: boolean;
   shouldShowInitialOverlay?: boolean;
   onOverlayShown?: () => void;
   cameraMode?: 'photo' | 'video';
@@ -21,12 +17,8 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
   onCapture,
   onModeChange,
   onFacingChange,
-  isCapturing,
-  setIsCapturing,
-  createMediaFromBlob,
   onGalleryClick,
   capturedMediaCount = 0,
-  isPWA = false,
   shouldShowInitialOverlay = false,
   onOverlayShown,
   cameraMode = 'photo'
@@ -100,7 +92,6 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
   const handleRecordStart = () => {
     try {
       cameraKitActions.startRecording();
-      setIsCapturing?.(true);
     } catch (error) {
       console.error('Failed to start recording:', error);
     }
@@ -122,10 +113,8 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
   const handleRecordStop = async () => {
     try {
       await cameraKitActions.stopRecording();
-      setIsCapturing?.(false);
     } catch (error) {
       console.error('Failed to stop recording:', error);
-      setIsCapturing?.(false);
     }
   };
 

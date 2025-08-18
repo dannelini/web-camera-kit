@@ -76,11 +76,7 @@ export const useCameraKitDirect = (canvasRef: React.RefObject<HTMLCanvasElement>
 
       // Create session
       const session = await cameraKit.createSession({
-        liveRenderTarget: canvas,
-        renderOptions: {
-          quality: 'high',
-          antialiasing: true
-        }
+        liveRenderTarget: canvas
       });
       sessionRef.current = session;
 
