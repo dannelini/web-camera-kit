@@ -278,6 +278,18 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
         </div>
       )}
 
+      {/* Video Processing Indicator */}
+      {cameraKitState.processingVideo && (
+        <div className="absolute top-16 sm:top-20 left-1/2 transform -translate-x-1/2 z-30">
+          <div className="flex items-center space-x-2 bg-blue-500 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full">
+            <div className="w-2 h-2 sm:w-3 sm:h-3 bg-white rounded-full animate-spin" />
+            <span className="text-xs sm:text-sm font-medium">
+              {cameraKitState.processingMessage || 'Processing video...'}
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Initial Overlay */}
       {shouldShowInitialOverlay && (
         <div className="absolute inset-0 bg-black/50 flex items-center justify-center">

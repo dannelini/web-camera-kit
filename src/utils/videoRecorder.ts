@@ -10,9 +10,13 @@ export class VideoRecorder {
   private combinedStream: MediaStream | null = null;
   private ffmpeg: FFmpeg | null = null;
   private isRecording = false;
+  private onProgress?: (message: string) => void;
+  private skipConversion: boolean = false;
 
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(canvas: HTMLCanvasElement, onProgress?: (message: string) => void, skipConversion: boolean = false) {
     this.canvas = canvas;
+    this.onProgress = onProgress;
+    this.skipConversion = skipConversion;
   }
 
   private async initializeFFmpeg(): Promise<void> {
@@ -141,6 +145,15 @@ export class VideoRecorder {
           const webmBlob = new Blob(this.recordedChunks, { type: 'video/webm' });
           console.log('WebM blob size:', webmBlob.size);
 
+          // Skip conversion if requested (for faster results)
+          if (this.skipConversion) {
+            console.log('Skipping conversion, returning WebM');
+            this.onProgress?.('Video ready!');
+            this.cleanup();
+            resolve(webmBlob);
+            return;
+          }
+
           // Convert to MP4 using FFmpeg
           const mp4Blob = await this.convertToMP4(webmBlob);
           
@@ -172,21 +185,25 @@ export class VideoRecorder {
       }
 
       console.log('Converting WebM to MP4...');
+      this.onProgress?.('Converting video...');
 
       // Write input file
       await this.ffmpeg.writeFile('input.webm', await fetchFile(webmBlob));
+      this.onProgress?.('Processing video...');
 
-      // Convert to MP4 with good compression settings
+      // Convert to MP4 with FAST settings optimized for speed
       await this.ffmpeg.exec([
         '-i', 'input.webm',
         '-c:v', 'libx264',           // Video codec
-        '-preset', 'medium',         // Encoding speed vs compression
-        '-crf', '23',               // Quality (lower = better quality)
-        '-c:a', 'aac',              // Audio codec
-        '-b:a', '128k',             // Audio bitrate
+        '-preset', 'ultrafast',      // Fastest encoding (was 'medium')
+        '-crf', '28',               // Slightly lower quality but much faster (was 23)
+        '-c:a', 'copy',             // Copy audio without re-encoding (was aac)
         '-movflags', '+faststart',   // Web optimization
+        '-threads', '0',            // Use all available CPU cores
         'output.mp4'
       ]);
+      
+      this.onProgress?.('Finalizing video...');
 
       // Read output file
       const mp4Data = await this.ffmpeg.readFile('output.mp4');

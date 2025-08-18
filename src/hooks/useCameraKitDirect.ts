@@ -7,6 +7,8 @@ interface CameraKitState {
   isRecording: boolean;
   error: string | null;
   currentCamera: 'BACK' | 'FRONT';
+  processingVideo: boolean;
+  processingMessage: string;
 }
 
 export const useCameraKitDirect = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
@@ -14,7 +16,9 @@ export const useCameraKitDirect = (canvasRef: React.RefObject<HTMLCanvasElement>
     isInitialized: false,
     isRecording: false,
     error: null,
-    currentCamera: 'BACK'
+    currentCamera: 'BACK',
+    processingVideo: false,
+    processingMessage: ''
   });
 
   // Store CameraKit instances
@@ -90,8 +94,18 @@ export const useCameraKitDirect = (canvasRef: React.RefObject<HTMLCanvasElement>
       await session.applyLens(lens);
       lensRef.current = lens;
 
-      // Initialize video recorder (FFMPEG will be loaded lazily when recording)
-      videoRecorderRef.current = new VideoRecorder(canvas);
+      // Initialize video recorder with progress callback
+      const onProgress = (message: string) => {
+        setState(prev => ({ 
+          ...prev, 
+          processingVideo: true,
+          processingMessage: message 
+        }));
+      };
+      
+      // Use fast WebM mode for better performance (set to true for instant results)
+      const useFastMode = import.meta.env.VITE_FAST_VIDEO_MODE === 'true'; // Set VITE_FAST_VIDEO_MODE=true for instant WebM
+      videoRecorderRef.current = new VideoRecorder(canvas, onProgress, useFastMode);
 
       setState(prev => ({ 
         ...prev, 
@@ -209,12 +223,22 @@ export const useCameraKitDirect = (canvasRef: React.RefObject<HTMLCanvasElement>
 
     try {
       const videoBlob = await videoRecorderRef.current.stopRecording();
-      setState(prev => ({ ...prev, isRecording: false }));
-      console.log('Video recording stopped, MP4 size:', videoBlob.size);
+      setState(prev => ({ 
+        ...prev, 
+        isRecording: false,
+        processingVideo: false,
+        processingMessage: ''
+      }));
+      console.log('Video recording stopped, file size:', videoBlob.size);
       return videoBlob;
     } catch (error) {
       console.error('Failed to stop video recording:', error);
-      setState(prev => ({ ...prev, isRecording: false }));
+      setState(prev => ({ 
+        ...prev, 
+        isRecording: false,
+        processingVideo: false,
+        processingMessage: ''
+      }));
       throw error;
     }
   }, []);
@@ -262,7 +286,9 @@ export const useCameraKitDirect = (canvasRef: React.RefObject<HTMLCanvasElement>
       isInitialized: false,
       isRecording: false,
       error: null,
-      currentCamera: 'BACK'
+      currentCamera: 'BACK',
+      processingVideo: false,
+      processingMessage: ''
     });
   }, []);
 
