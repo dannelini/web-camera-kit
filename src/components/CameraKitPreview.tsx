@@ -34,19 +34,46 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
   const [isInitializing, setIsInitializing] = React.useState(true);
   const [showError, setShowError] = React.useState(false);
 
+  // Debug canvas ref changes
+  useEffect(() => {
+    console.log('Canvas ref changed:', canvasRef.current);
+    if (canvasRef.current) {
+      console.log('Canvas element details:', {
+        tagName: canvasRef.current.tagName,
+        width: canvasRef.current.width,
+        height: canvasRef.current.height,
+        style: canvasRef.current.style.cssText
+      });
+    }
+  }, [canvasRef.current]);
+
   // Initialize Camera Kit when component mounts and canvas is ready
   useEffect(() => {
     let isMounted = true;
+    let retryCount = 0;
+    const maxRetries = 50; // 5 seconds max
 
     const initCameraKit = async () => {
       if (!isMounted) return;
       
       // Wait for canvas to be available
       if (!canvasRef.current) {
-        console.log('Canvas not ready, waiting...');
+        retryCount++;
+        console.log(`Canvas not ready, waiting... (attempt ${retryCount}/${maxRetries})`);
+        
+        if (retryCount >= maxRetries) {
+          console.error('Canvas failed to load after maximum retries');
+          setShowError(true);
+          setIsInitializing(false);
+          return;
+        }
+        
         setTimeout(initCameraKit, 100);
         return;
       }
+      
+      console.log('Canvas found:', canvasRef.current);
+      console.log('Canvas dimensions:', canvasRef.current.width, 'x', canvasRef.current.height);
       
       try {
         setIsInitializing(true);
@@ -133,6 +160,8 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
             <p>API Token: {import.meta.env.VITE_CAMERAKIT_API_TOKEN ? '✅ Set' : '❌ Missing'}</p>
             <p>Lens Group: {import.meta.env.VITE_CAMERAKIT_LENS_GROUP_ID ? '✅ Set' : '❌ Missing'}</p>
             <p>Lens ID: {import.meta.env.VITE_CAMERAKIT_LENS_ID ? '✅ Set' : '❌ Missing'}</p>
+            <p>Canvas Ref: {canvasRef.current ? '✅ Found' : '❌ Not Found'}</p>
+            <p>Canvas Element: {canvasRef.current?.tagName || 'None'}</p>
           </div>
         </div>
       </div>
@@ -172,12 +201,26 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
         style={{
           width: '100%',
           height: '100%',
-          display: 'block'
+          display: 'block',
+          minWidth: '320px',
+          minHeight: '240px'
         }}
+        width={1920}
+        height={1080}
         onLoad={() => {
           console.log('Canvas loaded and ready');
         }}
+        onError={(e) => {
+          console.error('Canvas error:', e);
+        }}
       />
+      
+      {/* Canvas Status Indicator */}
+      {!isInitializing && !showError && (
+        <div className="absolute top-4 left-4 bg-green-500 text-white px-2 py-1 rounded text-xs">
+          Canvas Ready
+        </div>
+      )}
 
       {/* Camera Controls Overlay */}
       <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent">
