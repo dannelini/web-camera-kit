@@ -52,6 +52,13 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
         height: canvasRef.current.height,
         style: canvasRef.current.style.cssText
       });
+    } else {
+      // Check if canvas exists in DOM by ID
+      const canvasById = document.getElementById('camerakit-canvas');
+      console.log('Canvas by ID:', canvasById);
+      if (canvasById) {
+        console.log('Canvas found by ID but ref is null');
+      }
     }
   }, [canvasRef.current]);
 
@@ -68,6 +75,22 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
       if (!canvasRef.current) {
         retryCount++;
         console.log(`Canvas not ready, waiting... (attempt ${retryCount}/${maxRetries})`);
+        
+        // Try to create canvas programmatically if it doesn't exist
+        if (retryCount === 10) {
+          console.log('Attempting to create canvas programmatically...');
+          const container = document.querySelector('.relative.w-full.h-full');
+          if (container && !document.getElementById('camerakit-canvas')) {
+            const newCanvas = document.createElement('canvas');
+            newCanvas.id = 'camerakit-canvas';
+            newCanvas.className = 'w-full h-full object-cover';
+            newCanvas.style.cssText = 'width: 100%; height: 100%; display: block !important; min-width: 320px; min-height: 240px; border: 2px solid red; background-color: rgba(0,0,0,0.8); position: relative; z-index: 1;';
+            newCanvas.width = 1920;
+            newCanvas.height = 1080;
+            container.appendChild(newCanvas);
+            console.log('Canvas created programmatically');
+          }
+        }
         
         if (retryCount >= maxRetries) {
           console.error('Canvas failed to load after maximum retries');
@@ -215,11 +238,13 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
         style={{
           width: '100%',
           height: '100%',
-          display: 'block',
+          display: 'block !important',
           minWidth: '320px',
           minHeight: '240px',
           border: '2px solid red', // Debug border
-          backgroundColor: 'rgba(0,0,0,0.8)' // Debug background
+          backgroundColor: 'rgba(0,0,0,0.8)', // Debug background
+          position: 'relative',
+          zIndex: 1
         }}
         width={1920}
         height={1080}
@@ -238,6 +263,13 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
       >
         Fallback Canvas
       </canvas>
+      
+      {/* Debug: Canvas Status */}
+      <div className="absolute top-0 right-0 bg-white text-black p-2 text-xs z-50">
+        Canvas Ref: {canvasRef.current ? '✅' : '❌'}<br/>
+        Canvas ID: {document.getElementById('camerakit-canvas') ? '✅' : '❌'}<br/>
+        Container: {document.querySelector('.relative.w-full.h-full') ? '✅' : '❌'}
+      </div>
       
       {/* Canvas Status Indicator */}
       {!isInitializing && !showError && (
