@@ -83,7 +83,7 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
       } else {
         console.log('Canvas not ready yet, skipping initialization');
       }
-    }, 1000); // Give more time for canvas to be ready
+    }, 100); // Canvas should be ready quickly now
 
     return () => {
       isMounted = false;
@@ -148,16 +148,7 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
     }
   };
 
-  if (isInitializing) {
-    return (
-      <div className="relative w-full h-full bg-black flex items-center justify-center">
-        <div className="text-center text-white">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-          <p>Initializing Camera...</p>
-        </div>
-      </div>
-    );
-  }
+  // Don't hide canvas during initialization - we need it to exist for the ref
 
   if (cameraKitState.error) {
     return (
@@ -197,6 +188,16 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
           zIndex: 1
         }}
       />
+
+      {/* Loading overlay while initializing */}
+      {isInitializing && (
+        <div className="absolute inset-0 bg-black flex items-center justify-center z-10">
+          <div className="text-center text-white">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+            <p>Initializing Camera...</p>
+          </div>
+        </div>
+      )}
 
       {/* Camera Controls Overlay */}
       <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent">
