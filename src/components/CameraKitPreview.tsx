@@ -14,6 +14,7 @@ interface CameraKitPreviewProps {
   isPWA?: boolean;
   shouldShowInitialOverlay?: boolean;
   onOverlayShown?: () => void;
+  cameraMode?: 'photo' | 'video';
 }
 
 export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
@@ -27,7 +28,8 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
   capturedMediaCount = 0,
   isPWA = false,
   shouldShowInitialOverlay = false,
-  onOverlayShown
+  onOverlayShown,
+  cameraMode = 'photo'
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [cameraKitState, cameraKitActions] = useCameraKit(canvasRef);
@@ -45,33 +47,18 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
     }
   };
 
-  // Debug component mounting
+  // Request permissions immediately when component mounts
+  useEffect(() => {
+    requestPermissions().catch(console.error);
+  }, []);
+
+  // Component lifecycle logging
   useEffect(() => {
     console.log('CameraKitPreview component mounted');
     return () => {
       console.log('CameraKitPreview component unmounted');
     };
   }, []);
-
-  // Debug canvas ref changes
-  useEffect(() => {
-    console.log('Canvas ref changed:', canvasRef.current);
-    if (canvasRef.current) {
-      console.log('Canvas element details:', {
-        tagName: canvasRef.current.tagName,
-        width: canvasRef.current.width,
-        height: canvasRef.current.height,
-        style: canvasRef.current.style.cssText
-      });
-    } else {
-      // Check if canvas exists in DOM by ID
-      const canvasById = document.getElementById('camerakit-canvas');
-      console.log('Canvas by ID:', canvasById);
-      if (canvasById) {
-        console.log('Canvas found by ID but ref is null');
-      }
-    }
-  }, [canvasRef.current]);
 
   // Initialize Camera Kit when component mounts and canvas is ready
   useEffect(() => {
@@ -85,24 +72,6 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
       // Wait for canvas to be available
       if (!canvasRef.current) {
         retryCount++;
-        console.log(`Canvas not ready, waiting... (attempt ${retryCount}/${maxRetries})`);
-        
-        // Try to create canvas programmatically if it doesn't exist
-        if (retryCount === 10) {
-          console.log('Attempting to create canvas programmatically...');
-          const container = document.querySelector('.relative.w-full.h-full');
-          if (container && !document.getElementById('camerakit-canvas')) {
-            const newCanvas = document.createElement('canvas');
-            newCanvas.id = 'camerakit-canvas';
-            newCanvas.className = 'w-full h-full object-cover';
-            newCanvas.style.cssText = 'width: 100%; height: 100%; display: block !important; min-width: 320px; min-height: 240px; border: 2px solid red; background-color: rgba(0,0,0,0.8); position: relative; z-index: 1;';
-            newCanvas.width = 1920;
-            newCanvas.height = 1080;
-            container.appendChild(newCanvas);
-            console.log('Canvas created programmatically');
-          }
-        }
-        
         if (retryCount >= maxRetries) {
           console.error('Canvas failed to load after maximum retries');
           setShowError(true);
@@ -114,14 +83,9 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
         return;
       }
       
-      console.log('Canvas found:', canvasRef.current);
-      console.log('Canvas dimensions:', canvasRef.current.width, 'x', canvasRef.current.height);
-      
       try {
         setIsInitializing(true);
         setShowError(false);
-        // Ensure permissions are granted before initializing
-        await requestPermissions();
         
         console.log('Canvas ready, initializing Camera Kit...');
         await cameraKitActions.initialize();
@@ -137,12 +101,11 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
       }
     };
 
-    // Start initialization after a short delay to ensure DOM is ready
-    const timer = setTimeout(initCameraKit, 200);
+    // Start initialization immediately
+    initCameraKit();
 
     return () => {
       isMounted = false;
-      clearTimeout(timer);
       cameraKitActions.cleanup();
     };
   }, [cameraKitActions]);
@@ -199,14 +162,7 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
       <div className="relative w-full h-full bg-black flex items-center justify-center">
         <div className="text-center text-white">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-          <p>Initializing Camera Kit...</p>
-          <div className="mt-4 text-sm text-gray-400">
-            <p>API Token: {import.meta.env.VITE_CAMERAKIT_API_TOKEN ? '✅ Set' : '❌ Missing'}</p>
-            <p>Lens Group: {import.meta.env.VITE_CAMERAKIT_LENS_GROUP_ID ? '✅ Set' : '❌ Missing'}</p>
-            <p>Lens ID: {import.meta.env.VITE_CAMERAKIT_LENS_ID ? '✅ Set' : '❌ Missing'}</p>
-            <p>Canvas Ref: {canvasRef.current ? '✅ Found' : '❌ Not Found'}</p>
-            <p>Canvas Element: {canvasRef.current?.tagName || 'None'}</p>
-          </div>
+          <p>Initializing Camera...</p>
         </div>
       </div>
     );
@@ -217,9 +173,9 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
       <div className="relative w-full h-full bg-black flex items-center justify-center">
         <div className="text-center text-white max-w-md mx-4">
           <Camera className="h-16 w-16 mx-auto mb-4 text-red-400" />
-          <h2 className="text-xl font-bold mb-2">Camera Kit Error</h2>
+          <h2 className="text-xl font-bold mb-2">Camera Error</h2>
           <p className="text-gray-300 mb-4">
-            {cameraKitState.error || 'Failed to initialize Camera Kit. Please check your API credentials and try again.'}
+            {cameraKitState.error || 'Failed to initialize camera. Please try again.'}
           </p>
           <button
             onClick={() => {
@@ -238,11 +194,6 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
 
   return (
     <div className="relative w-full h-full bg-black overflow-hidden">
-      {/* Debug Info */}
-      <div className="absolute top-4 right-4 bg-blue-500 text-white px-2 py-1 rounded text-xs z-50">
-        Component Rendered
-      </div>
-      
       {/* Camera Kit Canvas */}
       <canvas
         id="camerakit-canvas"
@@ -251,45 +202,13 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
         style={{
           width: '100%',
           height: '100%',
-          display: 'block !important',
-          minWidth: '320px',
-          minHeight: '240px',
-          border: '2px solid red', // Debug border
-          backgroundColor: 'rgba(0,0,0,0.8)', // Debug background
+          display: 'block',
           position: 'relative',
           zIndex: 1
         }}
         width={1920}
         height={1080}
-        onLoad={() => {
-          console.log('Canvas loaded and ready');
-        }}
-        onError={(e) => {
-          console.error('Canvas error:', e);
-        }}
       />
-      
-      {/* Fallback Canvas Test */}
-      <canvas
-        className="absolute top-0 left-0 w-32 h-32 border-2 border-yellow-400 bg-yellow-200"
-        style={{ zIndex: 1000 }}
-      >
-        Fallback Canvas
-      </canvas>
-      
-      {/* Debug: Canvas Status */}
-      <div className="absolute top-0 right-0 bg-white text-black p-2 text-xs z-50">
-        Canvas Ref: {canvasRef.current ? '✅' : '❌'}<br/>
-        Canvas ID: {document.getElementById('camerakit-canvas') ? '✅' : '❌'}<br/>
-        Container: {document.querySelector('.relative.w-full.h-full') ? '✅' : '❌'}
-      </div>
-      
-      {/* Canvas Status Indicator */}
-      {!isInitializing && !showError && (
-        <div className="absolute top-4 left-4 bg-green-500 text-white px-2 py-1 rounded text-xs">
-          Canvas Ready
-        </div>
-      )}
 
       {/* Camera Controls Overlay */}
       <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent">
@@ -345,7 +264,7 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
             <button
               onClick={() => onModeChange?.('photo')}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                true ? 'bg-white text-black' : 'text-white hover:bg-white/20'
+                cameraMode === 'photo' ? 'bg-white text-black' : 'text-white hover:bg-white/20'
               }`}
             >
               Photo
@@ -353,7 +272,7 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
             <button
               onClick={() => onModeChange?.('video')}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                false ? 'bg-white text-black' : 'text-white hover:bg-white/20'
+                cameraMode === 'video' ? 'bg-white text-black' : 'text-white hover:bg-white/20'
               }`}
             >
               Video
@@ -385,7 +304,7 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
         <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
           <div className="text-center text-white max-w-md mx-4">
             <Camera className="h-16 w-16 mx-auto mb-4" />
-            <h2 className="text-xl font-bold mb-2">Camera Kit Ready</h2>
+            <h2 className="text-xl font-bold mb-2">Camera Ready</h2>
             <p className="text-gray-300 mb-4">
               Tap and hold the record button to record video, or tap quickly to take a photo.
             </p>
