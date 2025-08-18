@@ -38,6 +38,9 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
   // Component is ready when mounted (permissions already granted at app level)
   useEffect(() => {
     console.log('CameraKitPreview mounted - permissions should already be granted');
+    console.log('Canvas ref current:', canvasRef.current);
+    console.log('CameraKit state:', cameraKitState);
+    console.log('CameraKit actions:', cameraKitActions);
   }, []);
 
   // Component lifecycle logging
@@ -70,8 +73,15 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
 
     // Wait for canvas to be ready, then initialize
     initTimeout = setTimeout(() => {
+      console.log('Timeout reached - checking canvas readiness');
+      console.log('isMounted:', isMounted);
+      console.log('canvasRef.current:', canvasRef.current);
+      
       if (isMounted && canvasRef.current) {
+        console.log('Canvas is ready, starting CameraKit initialization...');
         initCameraKit();
+      } else {
+        console.log('Canvas not ready yet, skipping initialization');
       }
     }, 1000); // Give more time for canvas to be ready
 
