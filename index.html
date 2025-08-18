@@ -16,10 +16,11 @@
     <meta name="msapplication-tap-highlight" content="no" />
     
     <!-- PWA Manifest -->
-    <link rel="manifest" href="/manifest.json?v=1" />
+    <link rel="manifest" href="/manifest.json" />
     
-    <!-- Disable service worker in development -->
+    <!-- Development service worker cleanup -->
     <script>
+      // Only disable service worker in local development
       if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
         if ('serviceWorker' in navigator) {
           navigator.serviceWorker.getRegistrations().then(function(registrations) {

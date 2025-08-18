@@ -1,8 +1,12 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { Camera, Sparkles } from 'lucide-react';
 import { gsap } from 'gsap';
 import { LoadingScreen } from './components/LoadingScreen';
-import { CameraKitPreview } from './components/CameraKitPreview';
+
+// Lazy load CameraKitPreview to prevent it from mounting until needed
+const CameraKitPreview = lazy(() => import('./components/CameraKitPreview').then(module => ({ 
+  default: module.CameraKitPreview 
+})));
 import { MediaGallery } from './components/MediaGallery';
 import { MediaPreviewModal } from './components/MediaPreviewModal';
 import { InstallPrompt } from './components/InstallPrompt';
@@ -317,31 +321,42 @@ function App() {
                 }}
               >
                 {currentView === 'camera' && (
-                  <CameraKitPreview
-                    onCapture={(blob: Blob) => {
-                      // Convert blob to CapturedMedia format
-                      const media: CapturedMedia = {
-                        id: Date.now().toString(),
-                        type: cameraMode,
-                        url: URL.createObjectURL(blob),
-                        blob,
-                        timestamp: Date.now(),
-                        filename: `camerakit_${Date.now()}.${cameraMode === 'photo' ? 'jpg' : 'mp4'}`
-                      };
-                      addMedia(media);
-                    }}
-                    onModeChange={setCameraMode}
-                    onFacingChange={toggleCameraFacing}
-                    isCapturing={isCapturing}
-                    setIsCapturing={setIsCapturing}
-                    createMediaFromBlob={createMediaFromBlob}
-                    onGalleryClick={() => setCurrentView('gallery')}
-                    capturedMediaCount={capturedMedia.length}
-                    isPWA={isPWA}
-                    shouldShowInitialOverlay={shouldShowCameraOverlay}
-                    onOverlayShown={() => setShouldShowCameraOverlay(false)}
-                    cameraMode={cameraMode}
-                  />
+                  <Suspense
+                    fallback={
+                      <div className="relative w-full h-full bg-black flex items-center justify-center">
+                        <div className="text-center text-white">
+                          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+                          <p>Loading Camera Kit...</p>
+                        </div>
+                      </div>
+                    }
+                  >
+                    <CameraKitPreview
+                      onCapture={(blob: Blob) => {
+                        // Convert blob to CapturedMedia format
+                        const media: CapturedMedia = {
+                          id: Date.now().toString(),
+                          type: cameraMode,
+                          url: URL.createObjectURL(blob),
+                          blob,
+                          timestamp: Date.now(),
+                          filename: `camerakit_${Date.now()}.${cameraMode === 'photo' ? 'jpg' : 'mp4'}`
+                        };
+                        addMedia(media);
+                      }}
+                      onModeChange={setCameraMode}
+                      onFacingChange={toggleCameraFacing}
+                      isCapturing={isCapturing}
+                      setIsCapturing={setIsCapturing}
+                      createMediaFromBlob={createMediaFromBlob}
+                      onGalleryClick={() => setCurrentView('gallery')}
+                      capturedMediaCount={capturedMedia.length}
+                      isPWA={isPWA}
+                      shouldShowInitialOverlay={shouldShowCameraOverlay}
+                      onOverlayShown={() => setShouldShowCameraOverlay(false)}
+                      cameraMode={cameraMode}
+                    />
+                  </Suspense>
                 )}
               </div>
             </div>

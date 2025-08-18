@@ -82,6 +82,11 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
       try {
         setShowError(false);
         
+        // Check if we have the required environment variables
+        if (!import.meta.env.VITE_CAMERAKIT_API_TOKEN) {
+          throw new Error('CameraKit API token is not configured');
+        }
+        
         console.log('Canvas ready, initializing Camera Kit...');
         await cameraKitActions.initialize();
         
@@ -101,7 +106,7 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
       if (isMounted) {
         initCameraKit();
       }
-    }, 100);
+    }, 200); // Slightly longer delay for production
 
     return () => {
       isMounted = false;
