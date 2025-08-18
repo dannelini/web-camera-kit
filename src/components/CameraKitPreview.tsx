@@ -36,22 +36,36 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
 
   // Initialize Camera Kit when component mounts
   useEffect(() => {
+    let isMounted = true;
+
     const initCameraKit = async () => {
+      if (!isMounted) return;
+      
       try {
         setIsInitializing(true);
         setShowError(false);
+        
+        // Add a small delay to prevent rapid initialization
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        if (!isMounted) return;
         await cameraKitActions.initialize();
+        
+        if (!isMounted) return;
+        setIsInitializing(false);
       } catch (error) {
         console.error('Failed to initialize Camera Kit:', error);
-        setShowError(true);
-      } finally {
-        setIsInitializing(false);
+        if (isMounted) {
+          setShowError(true);
+          setIsInitializing(false);
+        }
       }
     };
 
     initCameraKit();
 
     return () => {
+      isMounted = false;
       cameraKitActions.cleanup();
     };
   }, [cameraKitActions]);
@@ -109,6 +123,11 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
         <div className="text-center text-white">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
           <p>Initializing Camera Kit...</p>
+          <div className="mt-4 text-sm text-gray-400">
+            <p>API Token: {import.meta.env.VITE_CAMERAKIT_API_TOKEN ? '✅ Set' : '❌ Missing'}</p>
+            <p>Lens Group: {import.meta.env.VITE_CAMERAKIT_LENS_GROUP_ID ? '✅ Set' : '❌ Missing'}</p>
+            <p>Lens ID: {import.meta.env.VITE_CAMERAKIT_LENS_ID ? '✅ Set' : '❌ Missing'}</p>
+          </div>
         </div>
       </div>
     );

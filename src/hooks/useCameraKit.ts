@@ -5,9 +5,17 @@ import settings from '../utils/cameraKitSettings';
 import { overrideConsoleLog } from '../utils/cameraKitHelpers';
 
 // Configuration - these should be environment variables in production
-const API_TOKEN = import.meta.env.VITE_CAMERAKIT_API_TOKEN || 'INSERT-YOUR-TOKEN';
-const LENS_GROUP_ID = import.meta.env.VITE_CAMERAKIT_LENS_GROUP_ID || 'INSERT-YOUR-GROUP-ID';
-const TARGET_LENS_ID = import.meta.env.VITE_CAMERAKIT_LENS_ID || 'YOUR-LENS-ID';
+const API_TOKEN = import.meta.env.VITE_CAMERAKIT_API_TOKEN;
+const LENS_GROUP_ID = import.meta.env.VITE_CAMERAKIT_LENS_GROUP_ID;
+const TARGET_LENS_ID = import.meta.env.VITE_CAMERAKIT_LENS_ID;
+
+// Validate required environment variables
+if (!API_TOKEN || !LENS_GROUP_ID || !TARGET_LENS_ID) {
+  console.error('Missing required Camera Kit environment variables');
+  console.error('API_TOKEN:', !!API_TOKEN);
+  console.error('LENS_GROUP_ID:', !!LENS_GROUP_ID);
+  console.error('LENS_ID:', !!TARGET_LENS_ID);
+}
 
 export interface CameraKitState {
   cameraKit: any;
@@ -89,40 +97,56 @@ export function useCameraKit(): [CameraKitState, CameraKitActions] {
     };
   }, []);
 
-  // Setup audio node monitoring
+  // Setup audio node monitoring (simplified to avoid TypeScript issues)
   useEffect(() => {
-    const originalConnect = AudioNode.prototype.connect;
-
-    AudioNode.prototype.connect = function(destinationNode: any) {
-      console.log("Audio Node Connecting: " + this + " to " + destinationNode);
-
-      if (destinationNode instanceof AudioDestinationNode) {
-        console.log("final node found");
-
-        const streamNode = this.context.createMediaStreamDestination();
-        setState(prev => ({
-          ...prev,
-          monitorNodes: [...prev.monitorNodes, streamNode]
-        }));
-
-        this.connect(streamNode);
-      }
-
-      return originalConnect.apply(this, arguments as any);
+    // Monitor audio contexts for lens audio
+    const monitorAudioContext = (context: AudioContext) => {
+      console.log("Audio context created:", context);
+      setState(prev => ({
+        ...prev,
+        audioContexts: [...prev.audioContexts, context]
+      }));
     };
 
+    // Store original AudioContext constructor
+    const OriginalAudioContext = window.AudioContext || (window as any).webkitAudioContext;
+    
+    // Override AudioContext constructor
+    const AudioContextWrapper = function() {
+      const context = new OriginalAudioContext();
+      monitorAudioContext(context);
+      return context;
+    };
+
+    window.AudioContext = AudioContextWrapper as any;
+    (window as any).webkitAudioContext = AudioContextWrapper as any;
+
     return () => {
-      AudioNode.prototype.connect = originalConnect;
+      window.AudioContext = OriginalAudioContext;
+      (window as any).webkitAudioContext = OriginalAudioContext;
     };
   }, []);
 
   const initialize = useCallback(async () => {
+    // Prevent multiple initializations
+    if (state.isInitialized || state.cameraKit) {
+      console.log('Camera Kit already initialized, skipping...');
+      return;
+    }
+
     try {
       setState(prev => ({ ...prev, error: null }));
+
+      console.log('Initializing Camera Kit...');
+      console.log('API Token length:', API_TOKEN?.length || 0);
+      console.log('Lens Group ID:', LENS_GROUP_ID);
+      console.log('Lens ID:', TARGET_LENS_ID);
 
       const cameraKit = await bootstrapCameraKit({
         apiToken: API_TOKEN
       });
+
+      console.log('Camera Kit bootstrapped successfully');
 
       if (!canvasRef.current) {
         throw new Error('Canvas element not found');
@@ -135,16 +159,16 @@ export function useCameraKit(): [CameraKitState, CameraKitActions] {
       liveRenderTarget.width = window.innerWidth * dpr;
       liveRenderTarget.height = window.innerHeight * dpr;
 
+      console.log('Creating Camera Kit session...');
       const session = await cameraKit.createSession({
-        liveRenderTarget,
-        renderOptions: {
-          quality: 'high',
-          antialiasing: true
-        }
+        liveRenderTarget
       });
+
+      console.log('Session created successfully');
 
       // Initialize camera stream
       const isBackFacing = settings.defaultCameraType === 'BACK';
+      console.log('Getting user media...');
       const newMediaStream = await navigator.mediaDevices.getUserMedia({
         video: {
           frameRate: { ideal: settings.recordVideoFrameRate },
@@ -153,6 +177,7 @@ export function useCameraKit(): [CameraKitState, CameraKitActions] {
         audio: true,
       });
 
+      console.log('User media obtained, creating media stream source...');
       const newSource = createMediaStreamSource(newMediaStream, {
         cameraType: isBackFacing ? 'environment' : 'user',
         disableSourceAudio: false,
@@ -168,11 +193,15 @@ export function useCameraKit(): [CameraKitState, CameraKitActions] {
       const dpr2 = window.devicePixelRatio || 1;
       newSource.setRenderSize(window.innerWidth * dpr2, window.innerHeight * dpr2);
 
+      console.log('Starting session...');
       session.play();
 
       // Load lens
+      console.log('Loading lens...');
       const lens = await cameraKit.lensRepository.loadLens(TARGET_LENS_ID, LENS_GROUP_ID);
       await session.applyLens(lens);
+
+      console.log('Camera Kit initialization complete');
 
       setState(prev => ({
         ...prev,
@@ -186,12 +215,27 @@ export function useCameraKit(): [CameraKitState, CameraKitActions] {
 
     } catch (error) {
       console.error('Failed to initialize Camera Kit:', error);
+      
+      // Clean up any partial initialization
+      if (state.userMediaStream) {
+        state.userMediaStream.getTracks().forEach(track => track.stop());
+      }
+      if (state.session) {
+        state.session.pause();
+      }
+      
       setState(prev => ({ 
         ...prev, 
-        error: error instanceof Error ? error.message : 'Failed to initialize Camera Kit' 
+        error: error instanceof Error ? error.message : 'Failed to initialize Camera Kit',
+        isInitialized: false,
+        cameraKit: null,
+        session: null,
+        userMediaStream: null,
+        mediaStreamSource: null,
+        lens: null
       }));
     }
-  }, []);
+  }, [state.isInitialized, state.cameraKit, state.userMediaStream, state.session]);
 
   const setCameraSide = useCallback(async (toSide: 'BACK' | 'FRONT') => {
     try {
