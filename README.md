@@ -1,6 +1,6 @@
 # Web Camera Kit 📸
 
-A **lightweight, mobile-optimized camera boilerplate** designed for AI vision and computer vision projects. Built with React, TypeScript, and modern web APIs.
+A **lightweight, mobile-optimized camera boilerplate** designed for AI vision and computer vision projects. Built with React, TypeScript, and modern web APIs. **Now with Snapchat Camera Kit integration for AR experiences!**
 
 ## 🚀 Live Demo
 
@@ -22,6 +22,7 @@ A **lightweight, mobile-optimized camera boilerplate** designed for AI vision an
 - Real-time camera switching (front/back on mobile, device selection on desktop)
 - Live video processing with canvas-based frame manipulation
 - Robust error handling and retry mechanisms
+- **Snapchat Camera Kit integration with AR lenses and effects**
 
 ### 💾 **Smart Storage System**
 - IndexedDB integration for persistent media storage
@@ -55,6 +56,8 @@ A **lightweight, mobile-optimized camera boilerplate** designed for AI vision an
 - **Storage**: IndexedDB for media persistence
 - **PWA**: Service Worker + Web App Manifest
 - **Build Tool**: Vite with PWA plugin
+- **AR**: Snapchat Camera Kit
+- **Video Processing**: FFmpeg.wasm
 
 ## 📦 Installation
 
@@ -87,12 +90,34 @@ Works with any static hosting: Vercel, GitHub Pages, AWS S3, Firebase Hosting.
 
 ### Environment Variables
 ```env
-# Disable loading screen (optional)
-VITE_APP_DISABLE_LOADING_SCREEN=false
+# Camera Kit Configuration (required for AR features)
+VITE_CAMERAKIT_API_TOKEN=your-api-token-here
+VITE_CAMERAKIT_LENS_GROUP_ID=your-lens-group-id-here
+VITE_CAMERAKIT_LENS_ID=your-lens-id-here
 
-# Disable PWA features (optional)
+# App Configuration (optional)
+VITE_APP_DISABLE_LOADING_SCREEN=false
 VITE_APP_DISABLE_PWA=false
 ```
+
+### Camera Kit Setup
+
+1. **Get Camera Kit Credentials**:
+   - Sign up for [Snapchat Camera Kit](https://camera.snapchat.com/)
+   - Create a new app and get your API token
+   - Create or select a lens group and lens
+
+2. **Configure Environment Variables**:
+   ```bash
+   cp .env.example .env
+   ```
+   
+   Edit `.env` and add your Camera Kit credentials.
+
+3. **Usage**:
+   - **Desktop**: Toggle between "Native Camera" and "Camera Kit" modes
+   - **Mobile**: Camera Kit mode is optimized for mobile devices
+   - **Recording**: Tap and hold the record button for video, tap quickly for photos
 
 ### Camera Settings
 ```typescript
@@ -121,24 +146,31 @@ const videoConstraints = {
 ```
 src/
 ├── components/          # React components
-│   ├── CameraPreview.tsx    # Main camera interface
+│   ├── CameraPreview.tsx    # Native camera interface
+│   ├── CameraKitPreview.tsx # Camera Kit AR interface
 │   ├── MediaGallery.tsx     # Gallery with thumbnails
 │   └── MediaPreviewModal.tsx # Full-screen viewer
 ├── hooks/               # Custom React hooks
 │   ├── useMediaCapture.ts   # Media capture logic
+│   ├── useCameraKit.ts      # Camera Kit integration
 │   └── useMobileDetection.ts # Device detection
 ├── utils/               # Utility functions
 │   ├── indexedDb.ts         # Database operations
-│   └── pwa.ts              # PWA management
+│   ├── pwa.ts              # PWA management
+│   ├── CanvasRecorder.ts    # Video recording utilities
+│   ├── VideoProcessor.ts    # FFmpeg video processing
+│   └── cameraKitSettings.ts # Camera Kit configuration
 └── types/               # TypeScript definitions
 ```
 
 ### Key Components
 
-- **CameraPreview**: Camera initialization, switching, and capture
+- **CameraPreview**: Native camera initialization, switching, and capture
+- **CameraKitPreview**: Camera Kit AR interface with lens effects
 - **MediaGallery**: Media display with thumbnails and batch operations  
 - **MediaPreviewModal**: Full-screen viewing and sharing
 - **useMediaCapture**: Media state management and IndexedDB persistence
+- **useCameraKit**: Camera Kit state management and AR functionality
 - **useMobileDetection**: Device type detection and responsive behavior
 
 ## 🔐 Security & Privacy

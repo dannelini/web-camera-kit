@@ -1,0 +1,319 @@
+html, body {
+  margin: 0px;
+  padding: 0px;
+  border: none;
+  overflow: hidden;
+
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+
+  background-color: #000;
+
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none; /* disable selection/Copy of UIWebView */
+  -webkit-touch-callout: none; /* disable the IOS popup when long-press on a link */
+}
+
+div {
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none; /* disable selection/Copy of UIWebView */
+  -webkit-touch-callout: none; /* disable the IOS popup when long-press on a link */
+}
+
+canvas {
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none; /* disable selection/Copy of UIWebView */
+  -webkit-touch-callout: none; /* disable the IOS popup when long-press on a link */
+}
+
+button {
+  background: none;
+
+  border: none;
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: contain;
+  z-index: 600;
+
+  user-select: none; /* Disable text selection */
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+#wrapper {
+  box-sizing: border-box;
+  margin: 0px;
+  padding: 0px;
+  border: none;
+
+  width: 100%;
+  height: 100%;
+  user-select: none;
+}
+
+#ui-layer {
+  position: absolute;
+  display: block;
+  
+  top: 0;
+  left: 0;
+  
+  width: 100%;
+  height: 100%;
+
+  user-select: none;
+}
+
+#ui-left-top {
+  position: absolute;
+  /* background-color: aqua; */
+
+  top: 30px;
+  left: 30px;
+  width: 40%;
+  height: 8%;
+
+  display: flex;
+  flex-direction: row;
+}
+
+#ui-right-top {
+  position: absolute;
+  /* background-color: aquamarine; */
+
+  top: 30px;
+  right: 30px;
+  width: 40%;
+  height: 8%;
+
+  display: flex;
+  flex-direction: row-reverse;
+}
+
+#ui-bottom-row {
+  position: absolute;
+  /* background-color: lightcoral; */
+  bottom: 8%;
+
+  width: 100%;
+  height: 10%;
+
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+#ui-bottom-left {
+  margin-left: 36px;
+  width: 30%;
+  box-sizing: border-box;
+  /* background-color: lightblue; */
+  display: flex;
+  flex-direction: row;
+}
+
+#ui-bottom-center {
+  /* background-color: purple; */
+  width: 30%;
+  display: flex;
+  justify-content: center;
+  flex-direction: row;
+  align-items: center;
+}
+
+#ui-bottom-right {
+  /* background-color: lightgreen; */
+  margin-right: 36px;
+  width: 30%;
+  box-sizing: border-box;
+  
+  display: flex;
+  flex-direction: row-reverse;
+}
+
+#record-button {
+  position: relative;
+
+  height: 160%;
+  aspect-ratio: 1.0;
+}
+
+#record-button > div {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  width: 100%;
+  height: 100%;
+  padding: 0px;
+  margin: 0px;
+  background-size: contain;
+  background-repeat: no-repeat;
+
+  user-select: none;
+  /* background-color: tomato; */
+}
+
+#record-button-base {
+  background-image: url("../assets/record-button-full.png");
+  z-index: 100;
+}
+
+.recording #record-button-base {
+  background-image: url("../assets/record-ring-empty.png");
+}
+
+#record-button-progress {
+  display: none;
+  z-index: 200;
+}
+
+.recording #record-button-progress {
+  display: block;
+  background-image: url("../assets/record-ring-color.png");
+  animation-name: LoopRotate;
+  animation-duration: 1s;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+#record-button-icon {
+  display: none;
+  z-index: 150;
+}
+
+.recording #record-button-icon {
+  display: block;
+  background-image: url("../assets/record-stop-icon.png");
+}
+
+@keyframes LoopRotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+#camerakit-canvas {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+#back-button {
+  height: 100%;
+  aspect-ratio: 1.0;
+
+  background-image: url("../assets/BackButton.png"); /* Green background */
+}
+
+#share-button {
+  height: 100%;
+  aspect-ratio: 1.0;
+
+  background-image: url("../assets/share-button.png"); /* Green background */
+  background-size: contain; /* Ensure the image covers the button */
+  background-position: center; /* Center the image */
+  background-repeat: no-repeat; /* Preent tiling */
+  background-color: transparent;
+}
+
+#switch-button {
+  height: 100%;
+  aspect-ratio: 1.0;
+
+  background-image: url("../assets/switch-button.png"); /* Green background */
+  background-size: contain; /* Ensure the image covers the button */
+  background-position: center; /* Center the image */
+  background-repeat: no-repeat; /* Preent tiling */
+  background-color: transparent;
+  border: none;
+  user-select: none; /* Disable text selection */
+  outline: none;
+  transition: transform 0.1s ease; /* Smooth hover animation */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+#loading {
+  position: absolute;
+  top: 30%;
+  left: 40%;
+  z-index: 900;
+  display: none; /* Hidden by default */
+}
+
+#loading-icon {
+  height: 200px;
+  width: 200px;
+  animation: spin 2s linear infinite; /* Apply the spin animation */
+}
+
+/* Keyframes for the rotation */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+.poweredbysnap-logo {
+  position: absolute; /* Position relative to the viewport */
+  height: 4%;
+
+  bottom: 30px; /* Adjust to desired distance from the bottom */
+  left: 30px; /* Adjust to desired distance from the left */
+  display: flex;
+  flex-direction: row;
+  z-index: 100;
+}
+
+.poweredbysnap-logo > img {
+  height: 100%;
+  aspect-ratio: 4.2857;
+}
+
+.button-class {
+  transition: transform 0.1s ease;
+}
+
+.button-class:active {
+  transform: scale(0.9); /* Only scale without affecting translation */
+}
+
+#photo-snapshot-effect {
+  position: absolute;
+  background-color: #fff;
+  opacity: 0;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none; /* Allow clicks to pass through */
+  animation: none;
+}
+
+#photo-snapshot-effect.animating {
+  animation: blink 0.2s ease forwards;
+}
+
+@keyframes blink {
+  0% {
+    opacity: 1;
+  }
+  10% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}

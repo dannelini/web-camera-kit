@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Camera Kit Template" />
+  <meta name="robots" content="noindex" />
+  <title>Camera Kit Template</title>
+
+  <link rel="stylesheet" href="./src/style.css">
+</head>
+
+<body>
+  <main id="wrapper">
+    <canvas id="camerakit-canvas"></canvas>
+  </main>
+
+  <div id="ui-layer">
+
+    <!-- <div id="ui-left-top">
+      <button id="back-button" class="button-class"></button>
+    </div> -->
+
+    <div id="ui-right-top">
+      <button id="switch-button" class="button-class"></button>
+    </div>
+
+    <div id="ui-bottom-row">
+      <div id="ui-bottom-left">
+
+      </div>
+
+      <div id="ui-bottom-center">
+        <button id="record-button" class="button-class">
+          <div id="record-button-progress"></div>
+          <div id="record-button-icon"></div>
+          <div id="record-button-base"></div>
+        </button>
+      </div>
+
+      <div id="ui-bottom-right">
+        <button id="share-button" class="button-class"></button>
+      </div>
+    </div>
+
+    <div class="poweredbysnap-logo">
+      <img id="image" src="./assets/powered_by_snap_thin.png" alt="Powered by Snap" />
+    </div>
+
+    <!-- <div id="loading">
+      <img id="loading-icon" src="./assets/LoadingIcon.png" alt="loading" />
+    </div> -->
+
+    <div id="photo-snapshot-effect"></div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>

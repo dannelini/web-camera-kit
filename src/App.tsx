@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useRef } from 'react';
-import { Camera, Image, Settings, Info, ArrowLeft } from 'lucide-react';
+import { Camera, Image, Settings, Info, ArrowLeft, Sparkles } from 'lucide-react';
 import { gsap } from 'gsap';
 import { LoadingScreen } from './components/LoadingScreen';
 import { CameraPreview } from './components/CameraPreview';
+import { CameraKitPreview } from './components/CameraKitPreview';
 import { MediaGallery } from './components/MediaGallery';
 import { MediaPreviewModal } from './components/MediaPreviewModal';
 import { InstallPrompt } from './components/InstallPrompt';
 import { useMediaCapture } from './hooks/useMediaCapture';
 import { useMobileDetection } from './hooks/useMobileDetection';
-import { CameraMode, CameraFacing } from './types/media';
+import { CameraMode, CameraFacing, CapturedMedia } from './types/media';
 
 type View = 'camera' | 'gallery' | 'settings';
+type CameraType = 'native' | 'camerakit';
 
 function App() {
   const { isMobile, isMobileUserAgent, isMobileScreen, viewportHeight, isPWA } = useMobileDetection();
@@ -39,6 +41,7 @@ function App() {
   const [currentView, setCurrentView] = useState<View>('camera');
   const [cameraMode, setCameraMode] = useState<CameraMode>('photo');
   const [cameraFacing, setCameraFacing] = useState<CameraFacing>(initialCameraFacing);
+  const [cameraType, setCameraType] = useState<CameraType>('native');
   const [permissionState, setPermissionState] = useState<'loading' | 'granted' | 'denied'>('loading');
   const [initialPermissionChecked, setInitialPermissionChecked] = useState(false);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
@@ -109,13 +112,13 @@ function App() {
           console.log('PWA: Permissions API not available, testing with getUserMedia...');
           
           try {
-            const stream = await navigator.mediaDevices.getUserMedia({ 
+            const stream = await (navigator as any).mediaDevices.getUserMedia({ 
               video: true, 
               audio: false 
             });
             
             // If we get here, permission is granted
-            stream.getTracks().forEach(track => track.stop());
+            stream.getTracks().forEach((track: any) => track.stop());
             setPermissionState('granted');
             
           } catch (error) {
@@ -295,29 +298,83 @@ function App() {
               key={currentView}
               className={isMobile ? 'h-full flex flex-col' : 'h-full flex flex-col space-y-6'}
             >
+              {/* Camera Type Toggle */}
+              {!isMobile && (
+                <div className="flex justify-center mb-4">
+                  <div className="flex bg-zinc-800 rounded-xl p-1">
+                    <button
+                      onClick={() => setCameraType('native')}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        cameraType === 'native'
+                          ? 'bg-zinc-700 text-white'
+                          : 'text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      Native Camera
+                    </button>
+                    <button
+                      onClick={() => setCameraType('camerakit')}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2 ${
+                        cameraType === 'camerakit'
+                          ? 'bg-zinc-700 text-white'
+                          : 'text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      <span>Camera Kit</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Camera Preview */}
               <div className={`${isMobile ? 'flex-1' : 'w-full'} ${
                 isMobile
                   ? 'h-full' 
                   : 'flex-grow'
               }`}>
-                <CameraPreview
-                  mode={cameraMode}
-                  facing={cameraFacing}
-                  selectedDeviceId={selectedDeviceId}
-                  setSelectedDeviceId={setSelectedDeviceId}
-                  onCapture={addMedia}
-                  onModeChange={setCameraMode}
-                  onFacingChange={toggleCameraFacing}
-                  isCapturing={isCapturing}
-                  setIsCapturing={setIsCapturing}
-                  createMediaFromBlob={createMediaFromBlob}
-                  onGalleryClick={() => setCurrentView('gallery')}
-                  capturedMediaCount={capturedMedia.length}
-                  isPWA={isPWA}
-                  shouldShowInitialOverlay={shouldShowCameraOverlay}
-                  onOverlayShown={() => setShouldShowCameraOverlay(false)}
-                />
+                {cameraType === 'native' ? (
+                  <CameraPreview
+                    mode={cameraMode}
+                    facing={cameraFacing}
+                    selectedDeviceId={selectedDeviceId}
+                    setSelectedDeviceId={setSelectedDeviceId}
+                    onCapture={addMedia}
+                    onModeChange={setCameraMode}
+                    onFacingChange={toggleCameraFacing}
+                    isCapturing={isCapturing}
+                    setIsCapturing={setIsCapturing}
+                    createMediaFromBlob={createMediaFromBlob}
+                    onGalleryClick={() => setCurrentView('gallery')}
+                    capturedMediaCount={capturedMedia.length}
+                    isPWA={isPWA}
+                  />
+                                 ) : (
+                   <CameraKitPreview
+                     onCapture={(blob: Blob) => {
+                       // Convert blob to CapturedMedia format
+                       const media: CapturedMedia = {
+                         id: Date.now().toString(),
+                         type: cameraMode,
+                         url: URL.createObjectURL(blob),
+                         blob,
+                         timestamp: Date.now(),
+                         filename: `camerakit_${Date.now()}.${cameraMode === 'photo' ? 'jpg' : 'mp4'}`
+                       };
+                       addMedia(media);
+                     }}
+                     onModeChange={setCameraMode}
+                     onFacingChange={toggleCameraFacing}
+                     isCapturing={isCapturing}
+                     setIsCapturing={setIsCapturing}
+                     createMediaFromBlob={createMediaFromBlob}
+                     onGalleryClick={() => setCurrentView('gallery')}
+                     capturedMediaCount={capturedMedia.length}
+                     isPWA={isPWA}
+                     shouldShowInitialOverlay={shouldShowCameraOverlay}
+                     onOverlayShown={() => setShouldShowCameraOverlay(false)}
+                   />
+                 )}
               </div>
             </div>
           )}
