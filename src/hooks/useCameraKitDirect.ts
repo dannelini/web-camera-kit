@@ -28,6 +28,12 @@ export const useCameraKitDirect = (canvasRef: React.RefObject<HTMLCanvasElement>
       throw new Error('Canvas ref not available');
     }
 
+    // Prevent multiple initializations
+    if (state.isInitialized || cameraKitRef.current) {
+      console.log('CameraKit already initialized, skipping...');
+      return;
+    }
+
     try {
       console.log('Initializing CameraKit...');
       
@@ -169,6 +175,12 @@ export const useCameraKitDirect = (canvasRef: React.RefObject<HTMLCanvasElement>
   }, [canvasRef]);
 
   const cleanup = useCallback(() => {
+    // Only cleanup if actually initialized
+    if (!cameraKitRef.current && !sessionRef.current) {
+      console.log('CameraKit not initialized, skipping cleanup');
+      return;
+    }
+
     console.log('Cleaning up CameraKit...');
     
     if (mediaStreamRef.current) {

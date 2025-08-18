@@ -78,9 +78,13 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
     return () => {
       isMounted = false;
       clearTimeout(initTimeout);
-      cameraKitActions.cleanup();
+      // Only cleanup on unmount, not on re-renders
+      if (cameraKitActions.cleanup) {
+        console.log('Cleaning up CameraKit on unmount');
+        cameraKitActions.cleanup();
+      }
     };
-  }, [cameraKitActions]);
+  }, []); // Empty dependency array - only run once on mount
 
   // Handle recording start
   const handleRecordStart = () => {
