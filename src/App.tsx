@@ -314,14 +314,15 @@ function App() {
                     </button>
                     <button
                       onClick={() => setCameraType('camerakit')}
+                      disabled={!import.meta.env.VITE_CAMERAKIT_API_TOKEN}
                       className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2 ${
                         cameraType === 'camerakit'
                           ? 'bg-zinc-700 text-white'
                           : 'text-zinc-400 hover:text-white'
-                      }`}
+                      } ${!import.meta.env.VITE_CAMERAKIT_API_TOKEN ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                       <Sparkles className="h-4 w-4" />
-                      <span>Camera Kit</span>
+                      <span>Camera Kit {!import.meta.env.VITE_CAMERAKIT_API_TOKEN && '(Disabled)'}</span>
                     </button>
                   </div>
                 </div>

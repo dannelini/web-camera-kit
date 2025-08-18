@@ -46,7 +46,7 @@ export interface CameraKitActions {
   cleanup: () => void;
 }
 
-export function useCameraKit(): [CameraKitState, CameraKitActions] {
+export function useCameraKit(canvasRef?: React.RefObject<HTMLCanvasElement>): [CameraKitState, CameraKitActions] {
   const [state, setState] = useState<CameraKitState>({
     cameraKit: null,
     session: null,
@@ -63,8 +63,11 @@ export function useCameraKit(): [CameraKitState, CameraKitActions] {
     error: null
   });
 
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const internalCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const startTimestampRef = useRef<number>(0);
+  
+  // Use the provided canvas ref or the internal one
+  const currentCanvasRef = canvasRef || internalCanvasRef;
 
   // Override console log based on settings
   useEffect(() => {
@@ -148,11 +151,11 @@ export function useCameraKit(): [CameraKitState, CameraKitActions] {
 
       console.log('Camera Kit bootstrapped successfully');
 
-      if (!canvasRef.current) {
+      if (!currentCanvasRef.current) {
         throw new Error('Canvas element not found');
       }
 
-      const liveRenderTarget = canvasRef.current;
+      const liveRenderTarget = currentCanvasRef.current;
 
       // Set canvas properties for better quality
       const dpr = window.devicePixelRatio || 1;
@@ -296,7 +299,7 @@ export function useCameraKit(): [CameraKitState, CameraKitActions] {
 
   const setupRecorder = useCallback(() => {
     try {
-      if (!canvasRef.current) {
+      if (!currentCanvasRef.current) {
         throw new Error('Canvas element not found');
       }
 
@@ -314,7 +317,7 @@ export function useCameraKit(): [CameraKitState, CameraKitActions] {
         monitoredStreams.push(state.userMediaStream);
       }
 
-      const newRecorder = new CanvasRecorder(canvasRef.current, monitoredStreams);
+      const newRecorder = new CanvasRecorder(currentCanvasRef.current!, monitoredStreams);
 
       setState(prev => ({
         ...prev,

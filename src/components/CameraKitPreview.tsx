@@ -30,25 +30,29 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
   onOverlayShown
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [cameraKitState, cameraKitActions] = useCameraKit();
+  const [cameraKitState, cameraKitActions] = useCameraKit(canvasRef);
   const [isInitializing, setIsInitializing] = React.useState(true);
   const [showError, setShowError] = React.useState(false);
 
-  // Initialize Camera Kit when component mounts
+  // Initialize Camera Kit when component mounts and canvas is ready
   useEffect(() => {
     let isMounted = true;
 
     const initCameraKit = async () => {
       if (!isMounted) return;
       
+      // Wait for canvas to be available
+      if (!canvasRef.current) {
+        console.log('Canvas not ready, waiting...');
+        setTimeout(initCameraKit, 100);
+        return;
+      }
+      
       try {
         setIsInitializing(true);
         setShowError(false);
         
-        // Add a small delay to prevent rapid initialization
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        if (!isMounted) return;
+        console.log('Canvas ready, initializing Camera Kit...');
         await cameraKitActions.initialize();
         
         if (!isMounted) return;
@@ -62,10 +66,12 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
       }
     };
 
-    initCameraKit();
+    // Start initialization after a short delay to ensure DOM is ready
+    const timer = setTimeout(initCameraKit, 200);
 
     return () => {
       isMounted = false;
+      clearTimeout(timer);
       cameraKitActions.cleanup();
     };
   }, [cameraKitActions]);
@@ -167,6 +173,9 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
           width: '100%',
           height: '100%',
           display: 'block'
+        }}
+        onLoad={() => {
+          console.log('Canvas loaded and ready');
         }}
       />
 
