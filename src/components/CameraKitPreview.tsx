@@ -35,6 +35,7 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
   const [cameraKitState, cameraKitActions] = useCameraKit(canvasRef);
   const [isInitializing, setIsInitializing] = React.useState(true);
   const [showError, setShowError] = React.useState(false);
+  const [canvasReady, setCanvasReady] = React.useState(false);
   
   // Request mic+camera permission proactively
   const requestPermissions = async () => {
@@ -50,7 +51,17 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
   // Request permissions immediately when component mounts
   useEffect(() => {
     requestPermissions().catch(console.error);
-  }, []);
+    
+    // Fallback: set canvas ready after a short delay if onLoad doesn't fire
+    const timeout = setTimeout(() => {
+      if (!canvasReady && canvasRef.current) {
+        console.log('Canvas ready via timeout fallback');
+        setCanvasReady(true);
+      }
+    }, 500);
+    
+    return () => clearTimeout(timeout);
+  }, [canvasReady]);
 
   // Component lifecycle logging
   useEffect(() => {
@@ -60,31 +71,14 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
     };
   }, []);
 
-  // Initialize Camera Kit when component mounts and canvas is ready
+  // Initialize Camera Kit when canvas is ready
   useEffect(() => {
+    if (!canvasReady || !canvasRef.current) return;
+    
     let isMounted = true;
-    let retryCount = 0;
-    const maxRetries = 50; // 5 seconds max
 
     const initCameraKit = async () => {
-      if (!isMounted) return;
-      
-      // Wait for canvas to be available
-      if (!canvasRef.current) {
-        retryCount++;
-        if (retryCount >= maxRetries) {
-          console.error('Canvas failed to load after maximum retries');
-          setShowError(true);
-          setIsInitializing(false);
-          return;
-        }
-        
-        setTimeout(initCameraKit, 100);
-        return;
-      }
-      
       try {
-        setIsInitializing(true);
         setShowError(false);
         
         console.log('Canvas ready, initializing Camera Kit...');
@@ -101,14 +95,13 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
       }
     };
 
-    // Start initialization immediately
     initCameraKit();
 
     return () => {
       isMounted = false;
       cameraKitActions.cleanup();
     };
-  }, [cameraKitActions]);
+  }, [canvasReady, cameraKitActions]);
 
   // Handle recording start
   const handleRecordStart = () => {
@@ -208,6 +201,10 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
         }}
         width={1920}
         height={1080}
+        onLoad={() => {
+          console.log('Canvas loaded');
+          setCanvasReady(true);
+        }}
       />
 
       {/* Camera Controls Overlay */}
