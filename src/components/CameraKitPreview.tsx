@@ -34,6 +34,14 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
   const [isInitializing, setIsInitializing] = React.useState(true);
   const [showError, setShowError] = React.useState(false);
 
+  // Debug component mounting
+  useEffect(() => {
+    console.log('CameraKitPreview component mounted');
+    return () => {
+      console.log('CameraKitPreview component unmounted');
+    };
+  }, []);
+
   // Debug canvas ref changes
   useEffect(() => {
     console.log('Canvas ref changed:', canvasRef.current);
@@ -194,6 +202,11 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
 
   return (
     <div className="relative w-full h-full bg-black overflow-hidden">
+      {/* Debug Info */}
+      <div className="absolute top-4 right-4 bg-blue-500 text-white px-2 py-1 rounded text-xs z-50">
+        Component Rendered
+      </div>
+      
       {/* Camera Kit Canvas */}
       <canvas
         ref={canvasRef}
@@ -203,7 +216,9 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
           height: '100%',
           display: 'block',
           minWidth: '320px',
-          minHeight: '240px'
+          minHeight: '240px',
+          border: '2px solid red', // Debug border
+          backgroundColor: 'rgba(0,0,0,0.8)' // Debug background
         }}
         width={1920}
         height={1080}
@@ -214,6 +229,14 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
           console.error('Canvas error:', e);
         }}
       />
+      
+      {/* Fallback Canvas Test */}
+      <canvas
+        className="absolute top-0 left-0 w-32 h-32 border-2 border-yellow-400 bg-yellow-200"
+        style={{ zIndex: 1000 }}
+      >
+        Fallback Canvas
+      </canvas>
       
       {/* Canvas Status Indicator */}
       {!isInitializing && !showError && (

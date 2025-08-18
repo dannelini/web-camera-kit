@@ -329,11 +329,17 @@ function App() {
               )}
 
               {/* Camera Preview */}
-              <div className={`${isMobile ? 'flex-1' : 'w-full'} ${
-                isMobile
-                  ? 'h-full' 
-                  : 'flex-grow'
-              }`}>
+              <div 
+                className={`${isMobile ? 'flex-1' : 'w-full'} ${
+                  isMobile
+                    ? 'h-full' 
+                    : 'flex-grow'
+                }`}
+                style={{
+                  minHeight: isMobile ? '100vh' : '600px',
+                  height: isMobile ? '100vh' : '100%'
+                }}
+              >
                 {cameraType === 'native' ? (
                   <CameraPreview
                     mode={cameraMode}
@@ -350,7 +356,12 @@ function App() {
                     capturedMediaCount={capturedMedia.length}
                     isPWA={isPWA}
                   />
-                                 ) : (
+                ) : (
+                  <div className="relative w-full h-full">
+                    {/* Debug: Camera Kit Mode */}
+                    <div className="absolute top-2 left-2 bg-purple-500 text-white px-2 py-1 rounded text-xs z-50">
+                      Camera Kit Mode Active
+                    </div>
                    <CameraKitPreview
                      onCapture={(blob: Blob) => {
                        // Convert blob to CapturedMedia format
@@ -375,6 +386,7 @@ function App() {
                      shouldShowInitialOverlay={shouldShowCameraOverlay}
                      onOverlayShown={() => setShouldShowCameraOverlay(false)}
                    />
+                   </div>
                  )}
               </div>
             </div>
