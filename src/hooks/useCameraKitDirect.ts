@@ -90,9 +90,8 @@ export const useCameraKitDirect = (canvasRef: React.RefObject<HTMLCanvasElement>
       await session.applyLens(lens);
       lensRef.current = lens;
 
-      // Initialize video recorder
+      // Initialize video recorder (FFMPEG will be loaded lazily when recording)
       videoRecorderRef.current = new VideoRecorder(canvas);
-      await videoRecorderRef.current.initializeFFmpeg();
 
       setState(prev => ({ 
         ...prev, 

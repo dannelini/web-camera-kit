@@ -15,19 +15,37 @@ export class VideoRecorder {
     this.canvas = canvas;
   }
 
-  async initializeFFmpeg(): Promise<void> {
+  private async initializeFFmpeg(): Promise<void> {
     if (this.ffmpeg) return;
 
+    console.log('Initializing FFmpeg...');
     this.ffmpeg = new FFmpeg();
     
-    // Load FFmpeg
-    const baseURL = '/ffmpeg/0.12.10';
-    await this.ffmpeg.load({
-      coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-      wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
-    });
-
-    console.log('FFmpeg loaded successfully');
+    try {
+      // Try local files first, fallback to CDN
+      let baseURL = '/ffmpeg/0.12.10';
+      
+      try {
+        await this.ffmpeg.load({
+          coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+          wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+        });
+        console.log('FFmpeg loaded successfully from local files');
+      } catch (localError) {
+        console.warn('Local FFMPEG files failed, trying CDN...', localError);
+        
+        // Fallback to CDN
+        baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm';
+        await this.ffmpeg.load({
+          coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+          wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+        });
+        console.log('FFmpeg loaded successfully from CDN');
+      }
+    } catch (error) {
+      console.error('Failed to load FFmpeg from both local and CDN:', error);
+      throw error;
+    }
   }
 
   async startRecording(): Promise<void> {
@@ -142,15 +160,17 @@ export class VideoRecorder {
   }
 
   private async convertToMP4(webmBlob: Blob): Promise<Blob> {
-    if (!this.ffmpeg) {
-      await this.initializeFFmpeg();
-    }
-
-    if (!this.ffmpeg) {
-      throw new Error('FFmpeg not initialized');
-    }
-
     try {
+      // Try to initialize FFmpeg if not already done
+      if (!this.ffmpeg) {
+        await this.initializeFFmpeg();
+      }
+
+      if (!this.ffmpeg) {
+        console.warn('FFmpeg not available, returning WebM file');
+        return webmBlob;
+      }
+
       console.log('Converting WebM to MP4...');
 
       // Write input file
@@ -179,8 +199,9 @@ export class VideoRecorder {
       console.log('MP4 conversion complete. Size:', mp4Blob.size);
       return mp4Blob;
     } catch (error) {
-      console.error('FFmpeg conversion failed:', error);
-      throw error;
+      console.error('FFmpeg conversion failed, returning WebM file:', error);
+      // Fallback: return the original WebM file if conversion fails
+      return webmBlob;
     }
   }
 
