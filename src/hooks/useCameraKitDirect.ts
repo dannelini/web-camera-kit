@@ -42,8 +42,16 @@ export const useCameraKitDirect = (canvasRef: React.RefObject<HTMLCanvasElement>
       const LENS_GROUP_ID = import.meta.env.VITE_CAMERAKIT_LENS_GROUP_ID;
       const LENS_ID = import.meta.env.VITE_CAMERAKIT_LENS_ID;
 
+      console.log('Environment variables loaded:');
+      console.log('API_TOKEN:', API_TOKEN ? `${API_TOKEN.substring(0, 20)}...` : 'NOT SET');
+      console.log('LENS_GROUP_ID:', LENS_GROUP_ID || 'NOT SET');
+      console.log('LENS_ID:', LENS_ID || 'NOT SET');
+
       if (!API_TOKEN || !LENS_GROUP_ID || !LENS_ID) {
-        throw new Error('CameraKit environment variables not configured');
+        throw new Error(`CameraKit environment variables not configured: 
+          API_TOKEN: ${API_TOKEN ? 'SET' : 'MISSING'}
+          LENS_GROUP_ID: ${LENS_GROUP_ID ? 'SET' : 'MISSING'}
+          LENS_ID: ${LENS_ID ? 'SET' : 'MISSING'}`);
       }
 
       // Bootstrap CameraKit
@@ -88,6 +96,19 @@ export const useCameraKitDirect = (canvasRef: React.RefObject<HTMLCanvasElement>
       console.log('CameraKit initialized successfully');
     } catch (error) {
       console.error('Failed to initialize CameraKit:', error);
+      
+      // More detailed error logging for authentication issues
+      if (error instanceof Error) {
+        console.error('Error name:', error.name);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+        
+        // Check for authentication-specific errors
+        if (error.message.includes('token') || error.message.includes('auth') || error.message.includes('401')) {
+          console.error('Authentication failed - check API token');
+        }
+      }
+      
       setState(prev => ({ 
         ...prev, 
         error: error instanceof Error ? error.message : 'Failed to initialize CameraKit',
