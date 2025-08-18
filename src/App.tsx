@@ -69,14 +69,11 @@ function App() {
   
   const {
     capturedMedia,
-    isCapturing,
-    setIsCapturing,
     addMedia,
     removeMedia,
     clearAllMedia,
     downloadMedia,
-    downloadMediaBlob,
-    createMediaFromBlob
+    downloadMediaBlob
   } = useMediaCapture();
 
   // Initial permission check - runs once when app mounts
@@ -328,12 +325,8 @@ function App() {
                       }}
                       onModeChange={setCameraMode}
                       onFacingChange={toggleCameraFacing}
-                      isCapturing={isCapturing}
-                      setIsCapturing={setIsCapturing}
-                      createMediaFromBlob={createMediaFromBlob}
                       onGalleryClick={() => setCurrentView('gallery')}
                       capturedMediaCount={capturedMedia.length}
-                      isPWA={isPWA}
                       shouldShowInitialOverlay={shouldShowCameraOverlay}
                       onOverlayShown={() => setShouldShowCameraOverlay(false)}
                       cameraMode={cameraMode}

@@ -1,5 +1,6 @@
 import React, { useRef, useCallback, useState } from 'react';
 import { bootstrapCameraKit, createMediaStreamSource, Transform2D } from '@snap/camera-kit';
+import { VideoRecorder } from '../utils/videoRecorder';
 
 interface CameraKitState {
   isInitialized: boolean;
@@ -22,6 +23,7 @@ export const useCameraKitDirect = (canvasRef: React.RefObject<HTMLCanvasElement>
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const mediaStreamSourceRef = useRef<any>(null);
   const lensRef = useRef<any>(null);
+  const videoRecorderRef = useRef<VideoRecorder | null>(null);
 
   const initialize = useCallback(async () => {
     if (!canvasRef.current) {
@@ -87,6 +89,10 @@ export const useCameraKitDirect = (canvasRef: React.RefObject<HTMLCanvasElement>
       const lens = await cameraKit.lensRepository.loadLens(LENS_ID, LENS_GROUP_ID);
       await session.applyLens(lens);
       lensRef.current = lens;
+
+      // Initialize video recorder
+      videoRecorderRef.current = new VideoRecorder(canvas);
+      await videoRecorderRef.current.initializeFFmpeg();
 
       setState(prev => ({ 
         ...prev, 
@@ -182,12 +188,36 @@ export const useCameraKitDirect = (canvasRef: React.RefObject<HTMLCanvasElement>
     await setCameraSide(newSide);
   }, [state.currentCamera, setCameraSide]);
 
-  const startRecording = useCallback(() => {
-    setState(prev => ({ ...prev, isRecording: true }));
+  const startRecording = useCallback(async () => {
+    if (!videoRecorderRef.current) {
+      throw new Error('Video recorder not initialized');
+    }
+
+    try {
+      await videoRecorderRef.current.startRecording();
+      setState(prev => ({ ...prev, isRecording: true }));
+      console.log('Video recording started');
+    } catch (error) {
+      console.error('Failed to start video recording:', error);
+      throw error;
+    }
   }, []);
 
-  const stopRecording = useCallback(async () => {
-    setState(prev => ({ ...prev, isRecording: false }));
+  const stopRecording = useCallback(async (): Promise<Blob | null> => {
+    if (!videoRecorderRef.current) {
+      throw new Error('Video recorder not initialized');
+    }
+
+    try {
+      const videoBlob = await videoRecorderRef.current.stopRecording();
+      setState(prev => ({ ...prev, isRecording: false }));
+      console.log('Video recording stopped, MP4 size:', videoBlob.size);
+      return videoBlob;
+    } catch (error) {
+      console.error('Failed to stop video recording:', error);
+      setState(prev => ({ ...prev, isRecording: false }));
+      throw error;
+    }
   }, []);
 
   const takePhoto = useCallback(async (): Promise<Blob | null> => {
@@ -200,7 +230,7 @@ export const useCameraKitDirect = (canvasRef: React.RefObject<HTMLCanvasElement>
     });
   }, [canvasRef]);
 
-  const cleanup = useCallback(() => {
+  const cleanup = useCallback(async () => {
     // Only cleanup if actually initialized
     if (!cameraKitRef.current && !sessionRef.current) {
       console.log('CameraKit not initialized, skipping cleanup');
@@ -222,6 +252,12 @@ export const useCameraKitDirect = (canvasRef: React.RefObject<HTMLCanvasElement>
     cameraKitRef.current = null;
     mediaStreamSourceRef.current = null;
     lensRef.current = null;
+
+    // Cleanup video recorder
+    if (videoRecorderRef.current) {
+      await videoRecorderRef.current.dispose();
+      videoRecorderRef.current = null;
+    }
 
     setState({
       isInitialized: false,

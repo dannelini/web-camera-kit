@@ -83,19 +83,10 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
       // Only cleanup on unmount, not on re-renders
       if (cameraKitActions.cleanup) {
         console.log('Cleaning up CameraKit on unmount');
-        cameraKitActions.cleanup();
+        cameraKitActions.cleanup().catch(console.error);
       }
     };
   }, []); // Empty dependency array - only run once on mount
-
-  // Handle recording start
-  const handleRecordStart = () => {
-    try {
-      cameraKitActions.startRecording();
-    } catch (error) {
-      console.error('Failed to start recording:', error);
-    }
-  };
 
   // Handle photo capture
   const handlePhotoCapture = async () => {
@@ -109,12 +100,21 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
     }
   };
 
-  // Handle recording stop
-  const handleRecordStop = async () => {
+  // Handle video recording toggle (tap to start/stop)
+  const handleVideoToggle = async () => {
     try {
-      await cameraKitActions.stopRecording();
+      if (cameraKitState.isRecording) {
+        console.log('Stopping video recording...');
+        const videoBlob = await cameraKitActions.stopRecording();
+        if (videoBlob && onCapture) {
+          onCapture(videoBlob);
+        }
+      } else {
+        console.log('Starting video recording...');
+        await cameraKitActions.startRecording();
+      }
     } catch (error) {
-      console.error('Failed to stop recording:', error);
+      console.error('Failed to toggle video recording:', error);
     }
   };
 
@@ -206,19 +206,17 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
 
           {/* Record Button */}
           <button
-            onMouseDown={cameraMode === 'video' ? handleRecordStart : undefined}
-            onMouseUp={cameraMode === 'video' ? handleRecordStop : undefined}
-            onTouchStart={cameraMode === 'video' ? handleRecordStart : undefined}
-            onTouchEnd={cameraMode === 'video' ? handleRecordStop : undefined}
-            onClick={cameraMode === 'photo' ? handlePhotoCapture : undefined}
+            onClick={cameraMode === 'photo' ? handlePhotoCapture : handleVideoToggle}
             className={`relative p-4 sm:p-6 rounded-full transition-all duration-200 touch-manipulation ${
               cameraKitState.isRecording
                 ? 'bg-red-500 scale-110'
                 : 'bg-white hover:bg-gray-200'
             }`}
           >
-            <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full ${
-              cameraKitState.isRecording ? 'bg-red-600' : 'bg-red-500'
+            <div className={`w-6 h-6 sm:w-8 sm:h-8 transition-all duration-200 ${
+              cameraMode === 'video' && cameraKitState.isRecording 
+                ? 'bg-red-600 rounded-sm' // Square for recording
+                : 'bg-red-500 rounded-full' // Circle for photo/ready
             }`} />
             {cameraKitState.isRecording && (
               <div className="absolute inset-0 rounded-full border-2 sm:border-4 border-red-400 animate-pulse" />
@@ -270,10 +268,12 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
 
       {/* Recording Indicator */}
       {cameraKitState.isRecording && (
-        <div className="absolute top-20 left-1/2 transform -translate-x-1/2">
-          <div className="flex items-center space-x-2 bg-red-500 text-white px-4 py-2 rounded-full">
-            <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-            <span className="text-sm font-medium">Recording</span>
+        <div className="absolute top-16 sm:top-20 left-1/2 transform -translate-x-1/2 z-30">
+          <div className="flex items-center space-x-2 bg-red-500 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full">
+            <div className="w-2 h-2 sm:w-3 sm:h-3 bg-white rounded-full animate-pulse" />
+            <span className="text-xs sm:text-sm font-medium">
+              {cameraMode === 'video' ? 'Recording • Tap to Stop' : 'Recording'}
+            </span>
           </div>
         </div>
       )}
