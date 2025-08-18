@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { Camera, Sparkles } from 'lucide-react';
 import { gsap } from 'gsap';
 import { LoadingScreen } from './components/LoadingScreen';
-import { CameraPreview } from './components/CameraPreview';
 import { CameraKitPreview } from './components/CameraKitPreview';
 import { MediaGallery } from './components/MediaGallery';
 import { MediaPreviewModal } from './components/MediaPreviewModal';
@@ -12,7 +11,6 @@ import { useMobileDetection } from './hooks/useMobileDetection';
 import { CameraMode, CameraFacing, CapturedMedia } from './types/media';
 
 type View = 'camera' | 'gallery' | 'settings';
-type CameraType = 'native' | 'camerakit';
 
 function App() {
   const { isMobile, isMobileUserAgent, isMobileScreen, viewportHeight, isPWA } = useMobileDetection();
@@ -40,10 +38,8 @@ function App() {
   const [currentView, setCurrentView] = useState<View>('camera');
   const [cameraMode, setCameraMode] = useState<CameraMode>('photo');
   const [cameraFacing, setCameraFacing] = useState<CameraFacing>(initialCameraFacing);
-  const [cameraType, setCameraType] = useState<CameraType>('native');
   const [permissionState, setPermissionState] = useState<'loading' | 'granted' | 'denied'>('loading');
   const [initialPermissionChecked, setInitialPermissionChecked] = useState(false);
-  const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
   const [selectedMediaForPreview, setSelectedMediaForPreview] = useState<CapturedMedia | null>(null);
   const mainContentRef = useRef<HTMLDivElement>(null);
   const [shouldShowCameraOverlay, setShouldShowCameraOverlay] = useState(false);
@@ -296,37 +292,19 @@ function App() {
               key={currentView}
               className={isMobile ? 'h-full flex flex-col' : 'h-full flex flex-col space-y-6'}
             >
-              {/* Camera Type Toggle */}
+              {/* Camera Kit Header */}
               {!isMobile && (
                 <div className="flex justify-center mb-4">
                   <div className="flex bg-zinc-800 rounded-xl p-1">
-                    <button
-                      onClick={() => setCameraType('native')}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        cameraType === 'native'
-                          ? 'bg-zinc-700 text-white'
-                          : 'text-zinc-400 hover:text-white'
-                      }`}
-                    >
-                      Native Camera
-                    </button>
-                    <button
-                      onClick={() => setCameraType('camerakit')}
-                      disabled={!import.meta.env.VITE_CAMERAKIT_API_TOKEN}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2 ${
-                        cameraType === 'camerakit'
-                          ? 'bg-zinc-700 text-white'
-                          : 'text-zinc-400 hover:text-white'
-                      } ${!import.meta.env.VITE_CAMERAKIT_API_TOKEN ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    >
+                    <div className="px-4 py-2 rounded-lg text-sm font-medium bg-zinc-700 text-white flex items-center space-x-2">
                       <Sparkles className="h-4 w-4" />
-                      <span>Camera Kit {!import.meta.env.VITE_CAMERAKIT_API_TOKEN && '(Disabled)'}</span>
-                    </button>
+                      <span>Camera Kit</span>
+                    </div>
                   </div>
                 </div>
               )}
 
-              {/* Camera Preview */}
+              {/* Camera Kit Preview */}
               <div 
                 className={`${isMobile ? 'flex-1' : 'w-full'} ${
                   isMobile
@@ -338,23 +316,7 @@ function App() {
                   height: isMobile ? '100vh' : '100%'
                 }}
               >
-                {cameraType === 'native' ? (
-                  <CameraPreview
-                    mode={cameraMode}
-                    facing={cameraFacing}
-                    selectedDeviceId={selectedDeviceId}
-                    setSelectedDeviceId={setSelectedDeviceId}
-                    onCapture={addMedia}
-                    onModeChange={setCameraMode}
-                    onFacingChange={toggleCameraFacing}
-                    isCapturing={isCapturing}
-                    setIsCapturing={setIsCapturing}
-                    createMediaFromBlob={createMediaFromBlob}
-                    onGalleryClick={() => setCurrentView('gallery')}
-                    capturedMediaCount={capturedMedia.length}
-                    isPWA={isPWA}
-                  />
-                ) : (
+                {currentView === 'camera' && (
                   <CameraKitPreview
                     onCapture={(blob: Blob) => {
                       // Convert blob to CapturedMedia format

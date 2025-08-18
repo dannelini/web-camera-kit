@@ -71,11 +71,12 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
     };
   }, []);
 
-  // Initialize Camera Kit when canvas is ready
+  // Initialize Camera Kit when canvas is ready and component is visible
   useEffect(() => {
     if (!canvasReady || !canvasRef.current) return;
     
     let isMounted = true;
+    let initTimeout: NodeJS.Timeout;
 
     const initCameraKit = async () => {
       try {
@@ -95,10 +96,16 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
       }
     };
 
-    initCameraKit();
+    // Delay initialization slightly to ensure the component is fully mounted
+    initTimeout = setTimeout(() => {
+      if (isMounted) {
+        initCameraKit();
+      }
+    }, 100);
 
     return () => {
       isMounted = false;
+      clearTimeout(initTimeout);
       cameraKitActions.cleanup();
     };
   }, [canvasReady, cameraKitActions]);
