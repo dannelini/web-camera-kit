@@ -209,6 +209,7 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
       
       {/* Camera Kit Canvas */}
       <canvas
+        id="camerakit-canvas"
         ref={canvasRef}
         className="w-full h-full object-cover"
         style={{

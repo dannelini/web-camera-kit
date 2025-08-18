@@ -152,11 +152,17 @@ export function useCameraKit(canvasRef?: React.RefObject<HTMLCanvasElement>): [C
       console.log('Camera Kit bootstrapped successfully');
 
       if (!currentCanvasRef.current) {
-        console.warn('Camera Kit init skipped: canvas not ready');
-        return; // silently skip; caller can retry later
+        // Fallback: try to find by ID if ref not yet set
+        const fallbackCanvas = document.getElementById('camerakit-canvas') as HTMLCanvasElement | null;
+        if (fallbackCanvas) {
+          (currentCanvasRef as any).current = fallbackCanvas;
+        } else {
+          console.warn('Camera Kit init skipped: canvas not ready');
+          return; // silently skip; caller can retry later
+        }
       }
 
-      const liveRenderTarget = currentCanvasRef.current;
+      const liveRenderTarget = currentCanvasRef.current!;
 
       // Set canvas properties for better quality
       const dpr = window.devicePixelRatio || 1;
