@@ -1,4 +1,4 @@
-import { useRef, useCallback, useState } from 'react';
+import React, { useRef, useCallback, useState } from 'react';
 import { bootstrapCameraKit, createMediaStreamSource, Transform2D } from '@snap/camera-kit';
 
 interface CameraKitState {
@@ -62,12 +62,17 @@ export const useCameraKitDirect = (canvasRef: React.RefObject<HTMLCanvasElement>
 
       const canvas = canvasRef.current;
       
-      // Set canvas size with device pixel ratio
+      // Set canvas size responsively
+      const container = canvas.parentElement;
+      const containerRect = container?.getBoundingClientRect() || { width: window.innerWidth, height: window.innerHeight };
+      
       const dpr = window.devicePixelRatio || 1;
-      canvas.width = window.innerWidth * dpr;
-      canvas.height = window.innerHeight * dpr;
-      canvas.style.width = window.innerWidth + 'px';
-      canvas.style.height = window.innerHeight + 'px';
+      canvas.width = containerRect.width * dpr;
+      canvas.height = containerRect.height * dpr;
+      canvas.style.width = containerRect.width + 'px';
+      canvas.style.height = containerRect.height + 'px';
+      
+      console.log('Canvas sized:', containerRect.width + 'x' + containerRect.height);
 
       // Create session
       const session = await cameraKit.createSession({
@@ -151,9 +156,13 @@ export const useCameraKitDirect = (canvasRef: React.RefObject<HTMLCanvasElement>
         newSource.setTransform(Transform2D.MirrorX);
       }
 
-      // Update render size
-      const dpr = window.devicePixelRatio || 1;
-      newSource.setRenderSize(window.innerWidth * dpr, window.innerHeight * dpr);
+      // Update render size to match canvas
+      const canvas = canvasRef.current;
+      if (canvas) {
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        newSource.setRenderSize(rect.width * dpr, rect.height * dpr);
+      }
 
       sessionRef.current.play();
 
@@ -225,6 +234,32 @@ export const useCameraKitDirect = (canvasRef: React.RefObject<HTMLCanvasElement>
       currentCamera: 'BACK'
     });
   }, []);
+
+  // Add resize handler to update canvas size
+  const handleResize = useCallback(() => {
+    if (canvasRef.current && mediaStreamSourceRef.current) {
+      const canvas = canvasRef.current;
+      const container = canvas.parentElement;
+      const containerRect = container?.getBoundingClientRect() || { width: window.innerWidth, height: window.innerHeight };
+      
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = containerRect.width * dpr;
+      canvas.height = containerRect.height * dpr;
+      canvas.style.width = containerRect.width + 'px';
+      canvas.style.height = containerRect.height + 'px';
+      
+      // Update render size
+      mediaStreamSourceRef.current.setRenderSize(containerRect.width * dpr, containerRect.height * dpr);
+      
+      console.log('Canvas resized:', containerRect.width + 'x' + containerRect.height);
+    }
+  }, [canvasRef]);
+
+  // Set up resize listener
+  React.useEffect(() => {
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [handleResize]);
 
   return {
     state,

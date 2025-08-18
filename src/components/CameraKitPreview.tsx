@@ -200,16 +200,16 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
       )}
 
       {/* Camera Controls Overlay */}
-      <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent">
-        <div className="flex items-center justify-between max-w-md mx-auto">
+      <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 bg-gradient-to-t from-black/90 to-transparent z-20">
+        <div className="flex items-center justify-between max-w-sm sm:max-w-md mx-auto">
           {/* Gallery Button */}
           <button
             onClick={onGalleryClick}
-            className="relative p-3 bg-white/20 backdrop-blur-sm rounded-full hover:bg-white/30 transition-colors"
+            className="relative p-2 sm:p-3 bg-white/20 backdrop-blur-sm rounded-full hover:bg-white/30 transition-colors touch-manipulation"
           >
-            <Camera className="h-6 w-6 text-white" />
+            <Camera className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
             {capturedMediaCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center text-[10px] sm:text-xs">
                 {capturedMediaCount}
               </span>
             )}
@@ -222,38 +222,38 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
             onTouchStart={cameraMode === 'video' ? handleRecordStart : undefined}
             onTouchEnd={cameraMode === 'video' ? handleRecordStop : undefined}
             onClick={cameraMode === 'photo' ? handlePhotoCapture : undefined}
-            className={`relative p-6 rounded-full transition-all duration-200 ${
+            className={`relative p-4 sm:p-6 rounded-full transition-all duration-200 touch-manipulation ${
               cameraKitState.isRecording
                 ? 'bg-red-500 scale-110'
                 : 'bg-white hover:bg-gray-200'
             }`}
           >
-            <div className={`w-8 h-8 rounded-full ${
+            <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full ${
               cameraKitState.isRecording ? 'bg-red-600' : 'bg-red-500'
             }`} />
             {cameraKitState.isRecording && (
-              <div className="absolute inset-0 rounded-full border-4 border-red-400 animate-pulse" />
+              <div className="absolute inset-0 rounded-full border-2 sm:border-4 border-red-400 animate-pulse" />
             )}
           </button>
 
           {/* Camera Switch Button */}
           <button
             onClick={handleCameraSwitch}
-            className="p-3 bg-white/20 backdrop-blur-sm rounded-full hover:bg-white/30 transition-colors"
+            className="p-2 sm:p-3 bg-white/20 backdrop-blur-sm rounded-full hover:bg-white/30 transition-colors touch-manipulation"
           >
-            <RotateCcw className="h-6 w-6 text-white" />
+            <RotateCcw className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
           </button>
         </div>
       </div>
 
       {/* Top Controls */}
-      <div className="absolute top-0 left-0 right-0 p-6">
+      <div className="absolute top-0 left-0 right-0 p-4 sm:p-6 z-20">
         <div className="flex items-center justify-between">
           {/* Mode Toggle */}
           <div className="flex bg-white/20 backdrop-blur-sm rounded-full p-1">
             <button
               onClick={() => onModeChange?.('photo')}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+              className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-colors touch-manipulation ${
                 cameraMode === 'photo' ? 'bg-white text-black' : 'text-white hover:bg-white/20'
               }`}
             >
@@ -261,7 +261,7 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
             </button>
             <button
               onClick={() => onModeChange?.('video')}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+              className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-colors touch-manipulation ${
                 cameraMode === 'video' ? 'bg-white text-black' : 'text-white hover:bg-white/20'
               }`}
             >
@@ -272,9 +272,9 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
           {/* Share Button */}
           <button
             onClick={handleShare}
-            className="p-3 bg-white/20 backdrop-blur-sm rounded-full hover:bg-white/30 transition-colors"
+            className="p-2 sm:p-3 bg-white/20 backdrop-blur-sm rounded-full hover:bg-white/30 transition-colors touch-manipulation"
           >
-            <Share className="h-6 w-6 text-white" />
+            <Share className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
           </button>
         </div>
       </div>
