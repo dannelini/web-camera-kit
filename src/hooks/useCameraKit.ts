@@ -152,7 +152,8 @@ export function useCameraKit(canvasRef?: React.RefObject<HTMLCanvasElement>): [C
       console.log('Camera Kit bootstrapped successfully');
 
       if (!currentCanvasRef.current) {
-        throw new Error('Canvas element not found');
+        console.warn('Camera Kit init skipped: canvas not ready');
+        return; // silently skip; caller can retry later
       }
 
       const liveRenderTarget = currentCanvasRef.current;
