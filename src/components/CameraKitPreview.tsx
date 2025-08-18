@@ -33,6 +33,17 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
   const [cameraKitState, cameraKitActions] = useCameraKit(canvasRef);
   const [isInitializing, setIsInitializing] = React.useState(true);
   const [showError, setShowError] = React.useState(false);
+  
+  // Request mic+camera permission proactively
+  const requestPermissions = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      stream.getTracks().forEach(t => t.stop());
+    } catch (e) {
+      console.error('Permission request failed:', e);
+      throw e;
+    }
+  };
 
   // Debug component mounting
   useEffect(() => {
@@ -109,6 +120,8 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
       try {
         setIsInitializing(true);
         setShowError(false);
+        // Ensure permissions are granted before initializing
+        await requestPermissions();
         
         console.log('Canvas ready, initializing Camera Kit...');
         await cameraKitActions.initialize();
