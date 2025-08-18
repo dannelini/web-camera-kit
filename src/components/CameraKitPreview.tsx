@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Camera, Share, RotateCcw } from 'lucide-react';
-import { useCameraKit } from '../hooks/useCameraKit';
+import { useCameraKitDirect } from '../hooks/useCameraKitDirect';
 
 interface CameraKitPreviewProps {
   onCapture?: (blob: Blob) => void;
@@ -32,36 +32,13 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
   cameraMode = 'photo'
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [cameraKitState, cameraKitActions] = useCameraKit(canvasRef);
+  const { state: cameraKitState, actions: cameraKitActions } = useCameraKitDirect(canvasRef);
   const [isInitializing, setIsInitializing] = React.useState(true);
-  const [showError, setShowError] = React.useState(false);
-  const [canvasReady, setCanvasReady] = React.useState(false);
   
-  // Request mic+camera permission proactively
-  const requestPermissions = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      stream.getTracks().forEach(t => t.stop());
-    } catch (e) {
-      console.error('Permission request failed:', e);
-      throw e;
-    }
-  };
-
-  // Request permissions immediately when component mounts
+  // Component is ready when mounted (permissions already granted at app level)
   useEffect(() => {
-    requestPermissions().catch(console.error);
-    
-    // Fallback: set canvas ready after a short delay if onLoad doesn't fire
-    const timeout = setTimeout(() => {
-      if (!canvasReady && canvasRef.current) {
-        console.log('Canvas ready via timeout fallback');
-        setCanvasReady(true);
-      }
-    }, 500);
-    
-    return () => clearTimeout(timeout);
-  }, [canvasReady]);
+    console.log('CameraKitPreview mounted - permissions should already be granted');
+  }, []);
 
   // Component lifecycle logging
   useEffect(() => {
@@ -71,23 +48,14 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
     };
   }, []);
 
-  // Initialize Camera Kit when canvas is ready and component is visible
+  // Initialize Camera Kit when component mounts (permissions already granted)
   useEffect(() => {
-    if (!canvasReady || !canvasRef.current) return;
-    
     let isMounted = true;
     let initTimeout: NodeJS.Timeout;
 
     const initCameraKit = async () => {
       try {
-        setShowError(false);
-        
-        // Check if we have the required environment variables
-        if (!import.meta.env.VITE_CAMERAKIT_API_TOKEN) {
-          throw new Error('CameraKit API token is not configured');
-        }
-        
-        console.log('Canvas ready, initializing Camera Kit...');
+        console.log('Initializing CameraKit...');
         await cameraKitActions.initialize();
         
         if (!isMounted) return;
@@ -95,25 +63,24 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
       } catch (error) {
         console.error('Failed to initialize Camera Kit:', error);
         if (isMounted) {
-          setShowError(true);
           setIsInitializing(false);
         }
       }
     };
 
-    // Delay initialization slightly to ensure the component is fully mounted
+    // Wait for canvas to be ready, then initialize
     initTimeout = setTimeout(() => {
-      if (isMounted) {
+      if (isMounted && canvasRef.current) {
         initCameraKit();
       }
-    }, 200); // Slightly longer delay for production
+    }, 1000); // Give more time for canvas to be ready
 
     return () => {
       isMounted = false;
       clearTimeout(initTimeout);
       cameraKitActions.cleanup();
     };
-  }, [canvasReady, cameraKitActions]);
+  }, [cameraKitActions]);
 
   // Handle recording start
   const handleRecordStart = () => {
@@ -122,6 +89,18 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
       setIsCapturing?.(true);
     } catch (error) {
       console.error('Failed to start recording:', error);
+    }
+  };
+
+  // Handle photo capture
+  const handlePhotoCapture = async () => {
+    try {
+      const blob = await cameraKitActions.takePhoto();
+      if (blob && onCapture) {
+        onCapture(blob);
+      }
+    } catch (error) {
+      console.error('Failed to take photo:', error);
     }
   };
 
@@ -149,18 +128,11 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
   // Handle share
   const handleShare = async () => {
     try {
-      await cameraKitActions.shareRecording();
+      console.log('Share functionality not implemented yet');
     } catch (error) {
-      console.error('Failed to share recording:', error);
+      console.error('Failed to share:', error);
     }
   };
-
-  // Handle error display
-  useEffect(() => {
-    if (cameraKitState.error) {
-      setShowError(true);
-    }
-  }, [cameraKitState.error]);
 
   if (isInitializing) {
     return (
@@ -173,18 +145,17 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
     );
   }
 
-  if (showError) {
+  if (cameraKitState.error) {
     return (
       <div className="relative w-full h-full bg-black flex items-center justify-center">
         <div className="text-center text-white max-w-md mx-4">
           <Camera className="h-16 w-16 mx-auto mb-4 text-red-400" />
           <h2 className="text-xl font-bold mb-2">Camera Error</h2>
           <p className="text-gray-300 mb-4">
-            {cameraKitState.error || 'Failed to initialize camera. Please try again.'}
+            {cameraKitState.error}
           </p>
           <button
             onClick={() => {
-              setShowError(false);
               setIsInitializing(true);
               cameraKitActions.initialize();
             }}
@@ -211,12 +182,6 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
           position: 'relative',
           zIndex: 1
         }}
-        width={1920}
-        height={1080}
-        onLoad={() => {
-          console.log('Canvas loaded');
-          setCanvasReady(true);
-        }}
       />
 
       {/* Camera Controls Overlay */}
@@ -237,10 +202,11 @@ export const CameraKitPreview: React.FC<CameraKitPreviewProps> = ({
 
           {/* Record Button */}
           <button
-            onMouseDown={handleRecordStart}
-            onMouseUp={handleRecordStop}
-            onTouchStart={handleRecordStart}
-            onTouchEnd={handleRecordStop}
+            onMouseDown={cameraMode === 'video' ? handleRecordStart : undefined}
+            onMouseUp={cameraMode === 'video' ? handleRecordStop : undefined}
+            onTouchStart={cameraMode === 'video' ? handleRecordStart : undefined}
+            onTouchEnd={cameraMode === 'video' ? handleRecordStop : undefined}
+            onClick={cameraMode === 'photo' ? handlePhotoCapture : undefined}
             className={`relative p-6 rounded-full transition-all duration-200 ${
               cameraKitState.isRecording
                 ? 'bg-red-500 scale-110'

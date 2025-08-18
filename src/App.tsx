@@ -47,6 +47,7 @@ function App() {
   const [selectedMediaForPreview, setSelectedMediaForPreview] = useState<CapturedMedia | null>(null);
   const mainContentRef = useRef<HTMLDivElement>(null);
   const [shouldShowCameraOverlay, setShouldShowCameraOverlay] = useState(false);
+  const [micPermissionGranted, setMicPermissionGranted] = useState(false);
   
   // Check if loading screen is disabled via environment variable
   const isLoadingScreenDisabled = import.meta.env.VITE_APP_DISABLE_LOADING_SCREEN === 'true';
@@ -82,58 +83,28 @@ function App() {
   useEffect(() => {
     const checkInitialPermissions = async () => {
       try {
-        // Check if the Permissions API is available
-        if ('permissions' in navigator) {
-          console.log('PWA: Checking initial camera permissions...');
-          
-          const permission = await navigator.permissions.query({ name: 'camera' as PermissionName });
-          
-          console.log('PWA: Initial camera permission state:', permission.state);
-          
-          switch (permission.state) {
-            case 'granted':
-              // Permission already granted, bypass loading screen
-              setPermissionState('granted');
-              break;
-            case 'denied':
-              // Permission denied, show denial screen
-              setPermissionState('denied');
-              break;
-            case 'prompt':
-            default:
-              // Permission needs to be requested, keep loading state
-              setPermissionState('loading');
-              break;
-          }
-        } else {
-          // Permissions API not available, fall back to getUserMedia test
-          console.log('PWA: Permissions API not available, testing with getUserMedia...');
-          
-          try {
-            const stream = await (navigator as any).mediaDevices.getUserMedia({ 
-              video: true, 
-              audio: false 
-            });
-            
-            // If we get here, permission is granted
-            stream.getTracks().forEach((track: any) => track.stop());
-            setPermissionState('granted');
-            
-          } catch (error) {
-            // Permission might be denied or need prompting
-            const errorName = (error as any)?.name;
-            if (errorName === 'NotAllowedError' || errorName === 'PermissionDeniedError') {
-              setPermissionState('denied');
-            } else {
-              // Other errors (like device not found) - still need to prompt
-              setPermissionState('loading');
-            }
-          }
-        }
+        console.log('Checking camera and microphone permissions...');
+        
+        // Request both camera and microphone permissions upfront
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: true, 
+          audio: true  // This is crucial for CameraKit
+        });
+        
+        console.log('Camera and microphone permissions granted');
+        stream.getTracks().forEach((track: any) => track.stop());
+        setPermissionState('granted');
+        setMicPermissionGranted(true);
+        
       } catch (error) {
-        console.error('PWA: Error checking initial permissions:', error);
-        // On error, default to loading state to show permission prompt
-        setPermissionState('loading');
+        console.error('Permission request failed:', error);
+        const errorName = (error as any)?.name;
+        if (errorName === 'NotAllowedError' || errorName === 'PermissionDeniedError') {
+          setPermissionState('denied');
+        } else {
+          // Other errors (like device not found) - still need to prompt
+          setPermissionState('loading');
+        }
       } finally {
         setInitialPermissionChecked(true);
       }
@@ -171,9 +142,10 @@ function App() {
           
           const stream = await navigator.mediaDevices.getUserMedia({ 
             video: true, 
-            audio: false 
+            audio: true  // Request both for CameraKit
           });
           stream.getTracks().forEach(track => track.stop());
+          setMicPermissionGranted(true);
           handlePermissionGranted();
         } catch (error) {
           console.error('Permission denied:', error);
@@ -320,7 +292,17 @@ function App() {
                   height: isMobile ? '100vh' : '100%'
                 }}
               >
-                {currentView === 'camera' && (
+                {currentView === 'camera' && !micPermissionGranted && (
+                  <div className="relative w-full h-full bg-black flex items-center justify-center">
+                    <div className="text-center text-white">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+                      <p>Requesting camera and microphone permissions...</p>
+                      <p className="text-sm text-gray-400 mt-2">CameraKit requires both camera and microphone access</p>
+                    </div>
+                  </div>
+                )}
+                
+                {currentView === 'camera' && micPermissionGranted && (
                   <Suspense
                     fallback={
                       <div className="relative w-full h-full bg-black flex items-center justify-center">

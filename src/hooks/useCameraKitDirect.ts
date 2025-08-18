@@ -31,10 +31,14 @@ export const useCameraKitDirect = (canvasRef: React.RefObject<HTMLCanvasElement>
     try {
       console.log('Initializing CameraKit...');
       
-      // Hardcoded API tokens for validation
-      const API_TOKEN = 'eyJhbGciOiJIUzI1NiIsImtpZCI6IkNhbnZhc1MyU0hNQUNQcm9kIiwidHlwIjoiSldUIn0.eyJhdWQiOiJjYW52YXMtY2FudmFzYXBpIiwiaXNzIjoiY2FudmFzLXMyc3Rva2VuIiwibmJmIjoxNzA3MTMwNjMwLCJzdWIiOiI4MWMyYWQ1OS05NDk2LTQ0YzMtYWIwNC0yNjdiYzJkMmRlYWZ-UFJPRFVDVElPTn5lNGFmYzVjMC1hOTVjLTQ4ODMtOWJkMy03NTBmZWIxYjI2MDcifQ.XXKseCwAs6piC0ot_04IiohnzBTuTB6BsnP_ofvGlPw';
-      const LENS_GROUP_ID = 'f901e170-8c27-41d1-9443-aed78bbc3e73';
-      const LENS_ID = '43281170875';
+      // Get environment variables
+      const API_TOKEN = import.meta.env.VITE_CAMERAKIT_API_TOKEN;
+      const LENS_GROUP_ID = import.meta.env.VITE_CAMERAKIT_LENS_GROUP_ID;
+      const LENS_ID = import.meta.env.VITE_CAMERAKIT_LENS_ID;
+
+      if (!API_TOKEN || !LENS_GROUP_ID || !LENS_ID) {
+        throw new Error('CameraKit environment variables not configured');
+      }
 
       // Bootstrap CameraKit
       const cameraKit = await bootstrapCameraKit({
