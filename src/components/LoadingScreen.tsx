@@ -235,7 +235,7 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
           <div className="relative bg-gradient-to-br from-zinc-800 via-zinc-700 to-zinc-900 rounded-full w-full h-full flex items-center justify-center shadow-2xl border border-zinc-600/30">
             <div ref={logoRef} className="text-white">
               <img 
-                src="/verticar-logo-full-color-rgb-2500px-w-300ppi.pngsquare.png" 
+                src="/verticar-logo-full-color-rgb-2500px-w-300ppi.png" 
                 alt="CameraApp Logo" 
                 className="h-32 w-32 drop-shadow-lg" 
               />
@@ -245,7 +245,7 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
 
         {/* Title */}
         <h1 ref={titleRef} className="text-4xl font-bold text-white mb-4 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent font-sans">
-          Web Camera Kit
+          Camera Kit for Web
         </h1>
 
         {/* Subtitle */}
@@ -254,9 +254,9 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
             ? <p>Checking camera access...</p>
             : (
                 <>
-                  <p>A lightweight, mobile-optimized camera boilerplate.</p>
-                  <p>Perfect for real-world AI and CV projects</p>
-                  <p>—right in the browser</p>
+                  <p>A lightweight, mobile-optimized Camera Kit for Web integration.</p>
+                  <p>Powered by Verticar</p>
+                  <p>—www.verticar.nl</p>
                 </>
               )
           }
