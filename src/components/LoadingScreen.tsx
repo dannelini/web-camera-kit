@@ -235,7 +235,7 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
           <div className="relative bg-gradient-to-br from-zinc-800 via-zinc-700 to-zinc-900 rounded-full w-full h-full flex items-center justify-center shadow-2xl border border-zinc-600/30">
             <div ref={logoRef} className="text-white">
               <img 
-                src="/white_circle_360x360.png" 
+                src="/verticar-logo-full-color-rgb-2500px-w-300ppi.pngsquare.png" 
                 alt="CameraApp Logo" 
                 className="h-32 w-32 drop-shadow-lg" 
               />
